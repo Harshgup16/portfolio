@@ -3,19 +3,19 @@ import React from 'react';
 
 export default function Statement() {
   return (
-    <section id="about" className="relative w-full min-h-screen bg-[#e5e5e5] text-black flex flex-col justify-between py-8 px-6 md:py-12 md:px-12 overflow-hidden font-sans">
+    <section id="about" className="relative w-full min-h-screen bg-[#e5e5e5] text-black flex flex-col justify-center md:justify-between py-12 px-6 md:py-12 md:px-12 overflow-hidden font-sans">
       {/* Top spacing */}
-      <div className="flex-1"></div>
+      <div className="hidden md:block md:flex-1"></div>
 
       {/* Main Content */}
-      <div className="flex flex-col items-center justify-center space-y-16 md:space-y-32 w-full">
+      <div className="flex flex-col items-center justify-center space-y-12 md:space-y-32 w-full">
         {/* Row 1 */}
         <div className="flex items-start justify-between w-full max-w-[1000px] mx-auto px-4 md:px-0">
-          <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-black mt-5 md:mt-6"></div>
+          <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-black mt-4 md:mt-6"></div>
           <p className="text-3xl md:text-5xl lg:text-[48px] font-medium tracking-tight text-center leading-tight">
             Intelligence shapes the future<br className="hidden md:block"/> not through code alone, but through<br className="hidden md:block"/> systems that learn, reason, and adapt.
           </p>
-          <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-black mt-5 md:mt-6"></div>
+          <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-black mt-4 md:mt-6"></div>
         </div>
 
         {/* Row 2 */}
@@ -24,7 +24,7 @@ export default function Statement() {
           <p className="text-3xl md:text-5xl lg:text-[48px] font-medium tracking-tight text-center leading-tight">
             It defines how problems are<br className="hidden md:block"/> understood, automated, and<br className="hidden md:block"/>solved at scale.
           </p>
-          <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-black mt-5 md:mt-6"></div>
+          <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-black mt-4 md:mt-6"></div>
         </div>
 
         {/* Row 3 */}
@@ -33,7 +33,7 @@ export default function Statement() {
           <p className="text-3xl md:text-5xl lg:text-[48px] font-medium tracking-tight text-center leading-tight">
             Create yours.
           </p>
-          <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-black mt-5 md:mt-6"></div>
+          <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-black mt-4 md:mt-6"></div>
         </div>
       </div>
 

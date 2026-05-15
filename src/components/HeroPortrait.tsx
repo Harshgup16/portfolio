@@ -3,6 +3,14 @@
 
 import { useEffect, useRef } from 'react';
 
+const HERO_IMAGE_SRC = "/harsh.png";
+let cachedImg: HTMLImageElement | null = null;
+
+if (typeof window !== 'undefined') {
+  cachedImg = new Image();
+  cachedImg.src = HERO_IMAGE_SRC;
+}
+
 export default function HeroPortrait() {
   const bgCanvasRef = useRef(null);
   const glyphCanvasRef = useRef(null);
@@ -433,8 +441,11 @@ void main(){
       gLastMotion = performance.now();
     }
 
-    glyphWrap.addEventListener('mousemove', handleMouseMove);
-    glyphWrap.addEventListener('touchmove', handleTouchMove, { passive: true });
+    const isMobile = window.matchMedia('(max-width: 1024px)').matches;
+    if (!isMobile) {
+      glyphWrap.addEventListener('mousemove', handleMouseMove);
+      glyphWrap.addEventListener('touchmove', handleTouchMove, { passive: true });
+    }
 
     let lastWidth = window.innerWidth;
     function handleResize() {
@@ -445,21 +456,17 @@ void main(){
     }
     window.addEventListener('resize', handleResize);
 
-    const srcImg = new Image();
-    srcImg.src = "/harsh.png";
-
-    async function initGlyph() {
-      gImg = srcImg;
-      // Ensure fonts are loaded before measuring char dimensions
-      await document.fonts.ready;
-      gBuild(srcImg);
+    async function initGlyph(img: HTMLImageElement) {
+      gImg = img;
+      // Monospace is a system font, so we can skip the await document.fonts.ready for speed
+      gBuild(img);
       gRender();
     }
 
-    if (srcImg.complete && srcImg.naturalWidth) {
-      initGlyph();
+    if (cachedImg?.complete && cachedImg.naturalWidth) {
+      initGlyph(cachedImg);
     } else {
-      srcImg.addEventListener('load', initGlyph);
+      cachedImg?.addEventListener('load', () => initGlyph(cachedImg!));
     }
 
     return () => {
@@ -467,9 +474,11 @@ void main(){
       cancelAnimationFrame(glyphFrameId);
       window.removeEventListener('resize', resizeBg);
       window.removeEventListener('resize', handleResize);
-      glyphWrap?.removeEventListener('mousemove', handleMouseMove);
-      glyphWrap?.removeEventListener('touchmove', handleTouchMove);
-      srcImg?.removeEventListener('load', initGlyph);
+      if (!isMobile) {
+        glyphWrap?.removeEventListener('mousemove', handleMouseMove);
+        glyphWrap?.removeEventListener('touchmove', handleTouchMove);
+      }
+      cachedImg?.removeEventListener('load', () => initGlyph(cachedImg!));
     };
   }, []);
 
