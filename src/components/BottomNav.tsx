@@ -1,15 +1,9 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { useGSAP } from "@gsap/react";
+import Link from "next/link";
 import Logo from "./Logo";
 import { useAudio } from "./AudioProvider";
-
-if (typeof window !== "undefined") {
-  gsap.registerPlugin(ScrollTrigger, useGSAP);
-}
 
 export default function BottomNav() {
   const navRef = useRef<HTMLDivElement>(null);
@@ -35,66 +29,12 @@ export default function BottomNav() {
     setCurrentDate(`${day}'${month} ${year}—NOW`);
   }, []);
 
-  useGSAP(() => {
-    const items = gsap.utils.toArray('.nav-item');
 
-    requestAnimationFrame(() => {
-      const triggerEl = document.getElementById("statement-section");
-      if (!triggerEl) {
-        // If trigger element doesn't exist (e.g., on sub-routes), show nav immediately
-        gsap.set(navRef.current, { opacity: 1, pointerEvents: "auto" });
-        gsap.fromTo(items, 
-          { y: 100, opacity: 0 },
-          {
-            y: 0,
-            opacity: 1,
-            duration: 0.8,
-            stagger: 0.1,
-            ease: "back.out(1.2)",
-            overwrite: "auto"
-          }
-        );
-        return;
-      }
-
-      ScrollTrigger.create({
-        trigger: triggerEl,
-        start: "top 50%",
-        onEnter: () => {
-          gsap.set(navRef.current, { opacity: 1, pointerEvents: "auto" });
-          gsap.fromTo(items, 
-            { y: 100, opacity: 0 },
-            {
-              y: 0,
-              opacity: 1,
-              duration: 0.8,
-              stagger: 0.1,
-              ease: "back.out(1.2)",
-              overwrite: "auto"
-            }
-          );
-        },
-        onLeaveBack: () => {
-          gsap.to(items, {
-            y: 100,
-            opacity: 0,
-            duration: 0.5,
-            stagger: 0.05,
-            ease: "power3.in",
-            overwrite: "auto",
-            onComplete: () => {
-              gsap.set(navRef.current, { opacity: 0, pointerEvents: "none" });
-            }
-          });
-        }
-      });
-    });
-  }, { scope: navRef });
 
   return (
     <div 
       ref={navRef} 
-      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center opacity-0 pointer-events-none"
+      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center"
     >
       <div className="nav-item flex items-center space-x-2 mb-2 text-black">
         <div className="w-0 h-0 border-l-[5px] border-l-transparent border-t-[8px] border-t-black border-r-[5px] border-r-transparent"></div>
@@ -103,13 +43,16 @@ export default function BottomNav() {
 
       <div className="flex items-stretch h-auto min-h-[40px] md:min-h-[48px] text-white font-sans text-[10px] md:text-[12px] uppercase tracking-widest gap-0.5">
         
-        <div className="nav-item shadow-lg relative bg-[#a02128] flex items-center justify-center w-12 md:w-16 px-2 py-2">
+        <Link 
+          href="/"
+          className="nav-item shadow-lg relative bg-[#a02128] flex items-center justify-center w-12 md:w-16 px-2 py-2 cursor-pointer"
+        >
           <div className="absolute top-1 left-1 w-1.5 h-1.5 border-t border-l border-white/60"></div>
           <div className="absolute top-1 right-1 w-1.5 h-1.5 border-t border-r border-white/60"></div>
           <div className="absolute bottom-1 left-1 w-1.5 h-1.5 border-b border-l border-white/60"></div>
           <div className="absolute bottom-1 right-1 w-1.5 h-1.5 border-b border-r border-white/60"></div>
           <Logo filled className="w-5 h-5 md:w-6 md:h-6" />
-        </div>
+        </Link>
 
         <div 
           className="nav-item shadow-lg relative bg-[#a02128] flex items-center justify-center px-5 py-2 md:px-8 gap-3 cursor-pointer"

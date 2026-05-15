@@ -8,31 +8,35 @@ import ScrollTrigger from "gsap/ScrollTrigger";
 
 gsap.registerPlugin(ScrollTrigger);
 
-const projects: { img?: string; video?: string; containVideo?: boolean; name: string; category: string; subtitle: string; }[] = [
+const projects: { img?: string; video?: string; containVideo?: boolean; name: string; category: string; subtitle: string; link?: string; }[] = [
   {
     video: "/projects/MultiPDF-RAG.mp4",
     containVideo: true,
     name: "PDF RAG Chatbot",
     category: "AI / GenAI",
     subtitle: "Multi-Agent RAG System",
+    link: "https://ai-multipdf-rag.vercel.app/",
   },
   {
     video: "/projects/Number Plate Detection.mp4",
     name: "Number Plate Detection",
     category: "ML / Vision",
     subtitle: "Computer Vision Pipeline",
+    link: "https://github.com/Harshgup16/license_plate_detection",
   },
   {
     video: "/projects/Kitty Konnect.mp4",
     name: "Kitty Konnect",
     category: "Web Development",
     subtitle: "Real-time Chat App",
+    link: "https://kitty-konnect.vercel.app/",
   },
   {
     video: "/projects/3D-Piano.mp4",
     name: "3D Piano",
     category: "Front-end",
     subtitle: "React + Three.js",
+    link: "#", // User to update later
   },
 ];
 
@@ -94,7 +98,7 @@ export default function Spotlight() {
 
     const projectIndex = desktop.querySelector<HTMLHeadingElement>(".spotlight-index");
     const imagesContainer = desktop.querySelector<HTMLDivElement>(".spotlight-images");
-    const imgs = desktop.querySelectorAll<HTMLDivElement>(".spotlight-img");
+    const imgs = desktop.querySelectorAll<HTMLAnchorElement>(".spotlight-img");
     const names = desktop.querySelectorAll<HTMLParagraphElement>(".spotlight-name");
     const namesContainer = desktop.querySelector<HTMLDivElement>(".spotlight-names");
 
@@ -181,9 +185,12 @@ export default function Spotlight() {
         {/* Centre image column */}
         <div className="spotlight-images absolute top-0 left-1/2 -translate-x-1/2 w-[35%] flex flex-col gap-2 py-[50svh] -z-[1] will-change-transform">
           {projects.map((p, i) => (
-            <div
+            <a
               key={i}
-              className="spotlight-img w-full aspect-video opacity-50 overflow-hidden transition-all duration-300"
+              href={p.link}
+              target={p.link?.startsWith('http') ? "_blank" : undefined}
+              rel={p.link?.startsWith('http') ? "noopener noreferrer" : undefined}
+              className="spotlight-img w-full aspect-video opacity-50 overflow-hidden transition-all duration-300 block cursor-pointer"
             >
               {p.video ? (
                 <video src={p.video} autoPlay loop muted playsInline className={`w-full h-full ${p.containVideo ? 'object-contain bg-black/20 rounded-lg' : 'object-cover'}`} />
@@ -191,7 +198,7 @@ export default function Spotlight() {
                 /* eslint-disable-next-line @next/next/no-img-element */
                 <img src={p.img} alt={p.name} className="w-full h-full object-cover" />
               )}
-            </div>
+            </a>
           ))}
         </div>
 
@@ -226,14 +233,19 @@ export default function Spotlight() {
               </div>
 
               {/* Image / Video */}
-              <div className="w-full aspect-video overflow-hidden">
+              <a 
+                href={p.link}
+                target={p.link?.startsWith('http') ? "_blank" : undefined}
+                rel={p.link?.startsWith('http') ? "noopener noreferrer" : undefined}
+                className="w-full aspect-video overflow-hidden block cursor-pointer"
+              >
                 {p.video ? (
                   <video src={p.video} autoPlay loop muted playsInline className={`w-full h-full ${p.containVideo ? 'object-contain bg-black/20 rounded-lg' : 'object-cover'}`} />
                 ) : (
                   /* eslint-disable-next-line @next/next/no-img-element */
                   <img src={p.img} alt={p.name} className="w-full h-full object-cover" />
                 )}
-              </div>
+              </a>
 
               {/* Title row */}
               <div className="flex items-baseline justify-between mt-4">

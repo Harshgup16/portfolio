@@ -144,7 +144,7 @@ export default function MobileNav() {
 
       {/* Fullscreen Overlay */}
       <div 
-        className={`fixed inset-0 z-50 bg-[#111111] text-white flex flex-col transition-transform duration-[900ms] ease-[cubic-bezier(0.76,0,0.24,1)] ${
+        className={`fixed inset-0 z-[55] bg-[#111111] text-white flex flex-col transition-transform duration-[900ms] ease-[cubic-bezier(0.76,0,0.24,1)] ${
           isOpen ? "translate-y-0" : "-translate-y-full"
         }`}
       >
