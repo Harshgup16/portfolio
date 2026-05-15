@@ -36,7 +36,7 @@ const projects: { img?: string; video?: string; containVideo?: boolean; name: st
     name: "3D Piano",
     category: "Front-end",
     subtitle: "React + Three.js",
-    link: "#", // User to update later
+    link: "https://3d-piano-rho.vercel.app/",
   },
 ];
 

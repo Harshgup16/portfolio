@@ -11,26 +11,26 @@ if (typeof window !== "undefined") {
 
 const projects = [
   {
-    name: "Agentic Blog Writer",
+    name: "MULTI-PDF RAG Chatbot",
     category: "AI / GenAI",
-    subtitle: "Multi-Agent Blog Generator",
-    description: "An intelligent, multi-agent blog writing application powered by LangGraph, Groq (Llama 3.3 70B), and Streamlit that autonomously researches, plans, and writes high-quality technical posts.",
-    tech: ["LangGraph", "Groq", "Streamlit", "Python"],
-    link: "https://blog-llm-harshgup16.streamlit.app/",
+    subtitle: "Multi-Agent RAG System",
+    description: "A full-stack AI-powered RAG platform that allows users to chat with multiple PDFs in real time. Built with LangGraph, FastAPI, Supabase, and Gemini embeddings, the system features multi-agent routing, user-scoped vector retrieval, live streaming responses, and scalable document intelligence for seamless conversational search across large datasets.",
+    tech: ["Python", "LangChain", "FastAPI", "React", "Supabase"],
+    link: "https://ai-multipdf-rag.vercel.app/",
   },
   {
     name: "Mother's Day Tribute (Winner)",
     category: "Frontend Development",
     subtitle: "Award-winning Web Experience",
-    description: "Winner of the VIT Mother’s Day Challenge. An innovative tribute website that strengthened engagement and awareness among 100+ participants.",
-    tech: ["Web Development", "UI/UX"],
+    description: "An award-winning Mother's Day web experience built as a digital love letter to mothers. It blends emotional storytelling, a 3D memory gallery, smooth animations, smart search, theme switching, and responsive design to create a heartfelt tribute that feels personal, modern, and memorable.",
+    tech: ["Next.js", "TypeScript", "Three.js", "Tailwind CSS", "shadcn/ui"],
     link: "https://mothers-day-to-my-mom.vercel.app/",
   },
   {
     name: "HOPS (1st Runner-Up)",
     category: "AI Healthcare",
     subtitle: "Medical Report Translator",
-    description: "An award-winning hackathon project. A Streamlit app that helps rural users by taking medical reports and providing AI-generated summaries in their native languages.",
+    description: "An AI-powered healthcare assistant designed to make medical reports easier to understand for rural users. The app translates complex medical language into simple summaries and native languages, improving accessibility through AI.",
     tech: ["Streamlit", "AI/ML", "Python"],
     link: "https://github.com/Harshgup16/HOPS",
   },
@@ -38,25 +38,25 @@ const projects = [
     name: "Kitty Konnect",
     category: "Web Development",
     subtitle: "Real-time Chat App",
-    description: "A full-stack real-time messaging application with secure authentication, direct messaging, and group channels.",
+    description: "A modern real-time messaging platform featuring secure authentication, instant messaging, and community channels. Built with a playful UI and smooth user experience to make online conversations more engaging.",
     tech: ["Next.js", "Socket.io", "Tailwind CSS", "Node.js"],
     link: "https://kitty-konnect.vercel.app/",
+  },
+  {
+    name: "Agentic Blog Writer",
+    category: "AI / GenAI",
+    subtitle: "Multi-Agent Blog Generator",
+    description: "An intelligent multi-agent AI writing system that autonomously researches, plans, and generates high-quality technical blogs in real time. Powered by LangGraph, Groq Llama 3.3 70B, and Tavily Search, the platform uses specialized AI agents for routing, research, orchestration, and parallel content generation to create structured, fact-based, and highly readable articles.",
+    tech: ["LangGraph", "Groq", "Streamlit", "Python", "Tavily"],
+    link: "https://blog-llm-harshgup16.streamlit.app/",
   },
   {
     name: "SoulSync",
     category: "Desktop App",
     subtitle: "Collaborative Music Player",
-    description: "A pastel-themed desktop music player built with ElectronJS. Features real-time JAM sessions to sync playback globally, along with Supabase integration for playlists.",
+    description: "A beautifully designed desktop music player with real-time JAM sessions that let users listen together from anywhere. Includes playlist syncing, live playback updates, and a smooth pastel-inspired interface.",
     tech: ["ElectronJS", "HTML/CSS/JS", "Supabase"],
     link: "https://github.com/Harshgup16/electron-songapp",
-  },
-  {
-    name: "PDF RAG Chatbot",
-    category: "AI / GenAI",
-    subtitle: "Multi-Agent RAG System",
-    description: "An intelligent chatbot system that utilizes Retrieval-Augmented Generation across multiple PDFs to provide accurate, context-aware answers.",
-    tech: ["Python", "LangChain", "FastAPI", "React", "Supabase"],
-    link: "https://ai-multipdf-rag.vercel.app/",
   },
   {
     name: "Number Plate Detection",
@@ -67,10 +67,20 @@ const projects = [
     link: "https://github.com/Harshgup16/license_plate_detection",
   },
   {
+    name: "3D Piano",
+    category: "WebGL / 3D",
+    subtitle: "Interactive Musical Experience",
+    description:
+      "An immersive 3D piano experience built with React and Three.js that transforms music interaction into a visually engaging web experience. Features smooth animations, realistic key interactions, dynamic lighting, and responsive controls for a creative blend of music and frontend engineering.",
+    tech: ["React", "Three.js", "WebGL", "JavaScript"],
+    link: "https://3d-piano-rho.vercel.app/",
+  },
+  {
     name: "3D Earth",
     category: "WebGL / 3D",
     subtitle: "Interactive 3D Globe",
-    description: "An interactive, visually stunning 3D Earth visualization built directly for the web.",
+    description:
+      "A visually immersive 3D Earth experience rendered directly in the browser. Users can explore a glowing interactive globe enhanced with smooth animations and modern WebGL effects.",
     tech: ["Three.js", "WebGL"],
     link: "https://3d-earth-pi.vercel.app/",
   },
@@ -78,10 +88,12 @@ const projects = [
     name: "3D Donut Landing Page",
     category: "WebGL / 3D",
     subtitle: "Customizable 3D Experience",
-    description: "A highly interactive and customizable 3D donut landing page experience.",
+    description:
+      "A creative and interactive 3D landing page featuring a fully customizable donut model. Designed to blend smooth animations, modern visuals, and engaging interactions into a unique web experience.",
     tech: ["Three.js", "WebGL"],
     link: "https://donut-kappa-ten.vercel.app/",
   },
+
 ];
 
 const TOTAL_PAD = String(projects.length).padStart(2, "0");
