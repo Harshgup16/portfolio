@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ASCII Image Reveal Effect</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #111; }
+
+    .gallery {
+      position: relative;
+      width: 100%;
+      height: 100svh;
+      padding: 2rem;
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      grid-template-rows: repeat(4, 1fr);
+      gap: 2rem;
+    }
+
+    .img {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 4 / 5;
+      align-self: center;
+      overflow: hidden;
+    }
+
+    .img canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .img img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: none;
+    }
+
+    .img.revealed canvas { display: none; }
+    .img.revealed img    { display: block; }
+
+    .img:nth-child(1)  { grid-column: 1; grid-row: 1; }
+    .img:nth-child(2)  { grid-column: 3; grid-row: 1; }
+    .img:nth-child(3)  { grid-column: 5; grid-row: 1; }
+    .img:nth-child(4)  { grid-column: 7; grid-row: 1; }
+    .img:nth-child(5)  { grid-column: 2; grid-row: 2; }
+    .img:nth-child(6)  { grid-column: 4; grid-row: 2; }
+    .img:nth-child(7)  { grid-column: 6; grid-row: 2; }
+    .img:nth-child(8)  { grid-column: 8; grid-row: 2; }
+    .img:nth-child(9)  { grid-column: 1; grid-row: 3; }
+    .img:nth-child(10) { grid-column: 4; grid-row: 3; }
+    .img:nth-child(11) { grid-column: 7; grid-row: 3; }
+    .img:nth-child(12) { grid-column: 10; grid-row: 3; }
+    .img:nth-child(13) { grid-column: 2; grid-row: 4; }
+    .img:nth-child(14) { grid-column: 6; grid-row: 4; }
+    .img:nth-child(15) { grid-column: 9; grid-row: 4; }
+
+    @media (max-width: 1000px) {
+      .gallery {
+        height: auto;
+        grid-template-columns: repeat(2, 1fr);
+        grid-template-rows: none;
+      }
+      .img:nth-child(n) {
+        grid-column: auto;
+        grid-row: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <section class="gallery">
+    <div class="img"><img class="ascii-reveal" src='1.jpg' /></div>
+    <div class="img"><img class="ascii-reveal" src='1.jpg' /></div>
+    <div class="img"><img class="ascii-reveal" src='1.jpg' /></div>
+    <div class="img"><img class="ascii-reveal" src='1.jpg' /></div>
+    <div class="img"><img class="ascii-reveal" src='1.jpg' /></div>
+    <div class="img"><img class="ascii-reveal" src='1.jpg' /></div>
+    <div class="img"><img class="ascii-reveal" src='1.jpg' /></div>
+    <div class="img"><img class="ascii-reveal" src='1.jpg' /></div>
+    <div class="img"><img class="ascii-reveal" src='2.jpg' /></div>
+    <div class="img"><img class="ascii-reveal" src='2.jpg' /></div>
+    <div class="img"><img class="ascii-reveal" src='2.jpg' /></div>
+    <div class="img"><img class="ascii-reveal" src='2.jpg' /></div>
+    <div class="img"><img class="ascii-reveal" src='2.jpg' /></div>
+    <div class="img"><img class="ascii-reveal" src='2.jpg' /></div>
+    <div class="img"><img class="ascii-reveal" src='2.jpg' /></div>
+  </section>
+
+  <script>
+    
+
+    const ASCII_CHARS      = "...,,:::;;==**xxXX##0369";
+    const FONT_SIZE        = 14;
+    const ASPECT_WIDTH     = 4;
+    const ASPECT_HEIGHT    = 5;
+    const ASCII_COLUMNS    = 25;
+    const IMAGE_STAGGER_MS = 100;
+    const CELL_APPEAR_MS   = 2;
+    const SCRAMBLE_COUNT   = 10;
+    const SCRAMBLE_SPEED_MS = 100;
+    const REVEAL_DELAY_MS  = 0;
+
+    const denseCharIndex = ASCII_CHARS.lastIndexOf(".");
+    const denseChars = ASCII_CHARS.slice(denseCharIndex + 1).split("");
+
+    const measureCtx = document.createElement("canvas").getContext("2d");
+    measureCtx.font = `${FONT_SIZE}px monospace`;
+    const charWidth  = Math.ceil(measureCtx.measureText("M").width);
+    const charHeight = FONT_SIZE;
+    const ASCII_ROWS = Math.round(
+      ASCII_COLUMNS * (ASPECT_HEIGHT / ASPECT_WIDTH) * (charWidth / charHeight)
+    );
+
+    document.querySelectorAll("img.ascii-reveal").forEach((img, index) => {
+      const canvas       = document.createElement("canvas");
+      const staggerDelay = index * IMAGE_STAGGER_MS;
+      const onLoaded     = () => startEffect(img, canvas, staggerDelay);
+
+      img.closest(".img").appendChild(canvas);
+      img.complete && img.naturalWidth
+        ? onLoaded()
+        : img.addEventListener("load", onLoaded);
+    });
+
+    function startEffect(img, canvas, staggerDelay) {
+      const { asciiGrid, brightnessGrid } = imageToAsciiGrid(img);
+      prepareCanvas(canvas);
+      animateCells(canvas, asciiGrid, brightnessGrid, staggerDelay);
+    }
+
+    function imageToAsciiGrid(img) {
+      const imageAspect = img.naturalWidth / img.naturalHeight;
+      const itemAspect  = ASPECT_WIDTH / ASPECT_HEIGHT;
+
+      let cropX = 0,
+          cropY = 0,
+          cropW = img.naturalWidth,
+          cropH = img.naturalHeight;
+
+      if (imageAspect > itemAspect) {
+        cropW = img.naturalHeight * itemAspect;
+        cropX = (img.naturalWidth - cropW) / 2;
+      } else {
+        cropH = img.naturalWidth / itemAspect;
+        cropY = (img.naturalHeight - cropH) / 2;
+      }
+
+      const samplingCanvas        = document.createElement("canvas");
+      samplingCanvas.width        = ASCII_COLUMNS;
+      samplingCanvas.height       = ASCII_ROWS;
+      samplingCanvas
+        .getContext("2d")
+        .drawImage(img, cropX, cropY, cropW, cropH, 0, 0, ASCII_COLUMNS, ASCII_ROWS);
+
+      const { data } = samplingCanvas
+        .getContext("2d")
+        .getImageData(0, 0, ASCII_COLUMNS, ASCII_ROWS);
+
+      const asciiGrid      = [];
+      const brightnessGrid = [];
+
+      for (let row = 0; row < ASCII_ROWS; row++) {
+        const asciiRow      = [];
+        const brightnessRow = [];
+
+        for (let col = 0; col < ASCII_COLUMNS; col++) {
+          const pixelIndex = (row * ASCII_COLUMNS + col) * 4;
+          const brightness =
+            (data[pixelIndex] * 0.299 +
+             data[pixelIndex + 1] * 0.587 +
+             data[pixelIndex + 2] * 0.114) /
+            255;
+
+          const charIndex = Math.min(
+            ASCII_CHARS.length - 1,
+            Math.floor((1 - brightness) * ASCII_CHARS.length)
+          );
+
+          asciiRow.push(ASCII_CHARS[charIndex]);
+          brightnessRow.push(charIndex);
+        }
+
+        asciiGrid.push(asciiRow);
+        brightnessGrid.push(brightnessRow);
+      }
+
+      return { asciiGrid, brightnessGrid };
+    }
+
+    function prepareCanvas(canvas) {
+      const dpr = 2;
+      canvas.width  = ASCII_COLUMNS * charWidth * dpr;
+      canvas.height = ASCII_ROWS    * charHeight * dpr;
+
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#111";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function drawCharacter(ctx, col, row, char) {
+      ctx.fillStyle = "#111";
+      ctx.fillRect(col * charWidth, row * charHeight, charWidth, charHeight);
+      ctx.fillStyle = "#c8c8c8";
+      ctx.fillText(char, col * charWidth, row * charHeight);
+    }
+
+    function shuffleArray(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function animateCells(canvas, asciiGrid, brightnessGrid, staggerDelay) {
+      const dpr = 2;
+      const ctx = canvas.getContext("2d");
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.font         = `${charHeight}px monospace`;
+      ctx.textBaseline = "top";
+
+      const totalCells    = ASCII_COLUMNS * ASCII_ROWS;
+      const scrambleState = new Array(totalCells).fill(null);
+      let   settledCount  = 0;
+
+      const cellOrder = shuffleArray(
+        Array.from({ length: totalCells }, (_, i) => i)
+      );
+
+      cellOrder.forEach((cellIndex, i) => {
+        setTimeout(
+          () => {
+            const row     = Math.floor(cellIndex / ASCII_COLUMNS);
+            const col     = cellIndex % ASCII_COLUMNS;
+            const isDark  = brightnessGrid[row][col] > denseCharIndex;
+
+            if (!isDark) {
+              drawCharacter(ctx, col, row, asciiGrid[row][col]);
+              scrambleState[cellIndex] = 0;
+              settledCount++;
+              if (settledCount === totalCells) scheduleImageReveal(canvas);
+            } else {
+              drawCharacter(
+                ctx,
+                col,
+                row,
+                denseChars[Math.floor(Math.random() * denseChars.length)]
+              );
+              scrambleState[cellIndex] = SCRAMBLE_COUNT;
+            }
+          },
+          staggerDelay + i * CELL_APPEAR_MS
+        );
+      });
+
+      const scrambleTicker = setInterval(() => {
+        let stillScrambling = false;
+
+        for (let cellIndex = 0; cellIndex < totalCells; cellIndex++) {
+          const remaining = scrambleState[cellIndex];
+          if (remaining === null || remaining === 0) continue;
+
+          stillScrambling = true;
+          const row = Math.floor(cellIndex / ASCII_COLUMNS);
+          const col = cellIndex % ASCII_COLUMNS;
+
+          if (remaining === 1) {
+            drawCharacter(ctx, col, row, asciiGrid[row][col]);
+            scrambleState[cellIndex] = 0;
+            settledCount++;
+            if (settledCount === totalCells) scheduleImageReveal(canvas);
+          } else {
+            drawCharacter(
+              ctx,
+              col,
+              row,
+              denseChars[Math.floor(Math.random() * denseChars.length)]
+            );
+            scrambleState[cellIndex] = remaining - 1;
+          }
+        }
+
+        if (!stillScrambling && settledCount === totalCells)
+          clearInterval(scrambleTicker);
+      }, SCRAMBLE_SPEED_MS);
+    }
+
+    function scheduleImageReveal(canvas) {
+      setTimeout(() => {
+        canvas.closest(".img").classList.add("revealed");
+      }, REVEAL_DELAY_MS);
+    }
+  </script>
+</body>
+</html>

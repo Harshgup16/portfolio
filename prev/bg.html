@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Harsh — Portfolio</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #000;
+    }
+
+    canvas#bg {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      z-index: 0;
+    }
+
+    /* Glyph dither person — bottom-center like raviklaassens */
+    #glyph-wrap {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 2;
+      pointer-events: auto;
+      cursor: none;
+      /* sized dynamically by JS */
+    }
+
+    #glyph-canvas {
+      display: block;
+    }
+
+    /* Hidden source image */
+    #src-img { display: none; }
+  </style>
+</head>
+
+<body>
+
+  <!-- Grainient WebGL background -->
+  <canvas id="bg"></canvas>
+
+  <!-- Glyph dither person overlay -->
+  <img id="src-img" src="harsh.png" alt="" />
+  <div id="glyph-wrap">
+    <canvas id="glyph-canvas"></canvas>
+  </div>
+
+  <script>
+    // ══════════════════════════════════════════════════════════════
+    // PART 1: Grainient animated background (WebGL2)
+    // ══════════════════════════════════════════════════════════════
+
+    const bgCanvas = document.getElementById('bg');
+    const gl = bgCanvas.getContext('webgl2');
+    if (!gl) {
+      document.body.innerHTML = '<p style="color:#fff;padding:2rem">WebGL2 not supported.</p>';
+      throw new Error('No WebGL2');
+    }
+
+    function resizeBg() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      bgCanvas.width = window.innerWidth * dpr;
+      bgCanvas.height = window.innerHeight * dpr;
+      gl.viewport(0, 0, bgCanvas.width, bgCanvas.height);
+    }
+    window.addEventListener('resize', resizeBg);
+    resizeBg();
+
+    const vertexSrc = `#version 300 es
+in vec2 position;
+void main() {
+  gl_Position = vec4(position, 0.0, 1.0);
+}`;
+
+    const fragmentSrc = `#version 300 es
+precision highp float;
+
+uniform vec2  iResolution;
+uniform float iTime;
+uniform float uTimeSpeed;
+uniform float uColorBalance;
+uniform float uWarpStrength;
+uniform float uWarpFrequency;
+uniform float uWarpSpeed;
+uniform float uWarpAmplitude;
+uniform float uBlendAngle;
+uniform float uBlendSoftness;
+uniform float uRotationAmount;
+uniform float uNoiseScale;
+uniform float uGrainAmount;
+uniform float uGrainScale;
+uniform float uGrainAnimated;
+uniform float uContrast;
+uniform float uGamma;
+uniform float uSaturation;
+uniform vec2  uCenterOffset;
+uniform float uZoom;
+uniform vec3  uColor1;
+uniform vec3  uColor2;
+uniform vec3  uColor3;
+
+out vec4 fragColor;
+
+#define S(a,b,t) smoothstep(a,b,t)
+
+mat2 Rot(float a) {
+  float s = sin(a), c = cos(a);
+  return mat2(c, -s, s, c);
+}
+
+vec2 hash(vec2 p) {
+  p = vec2(dot(p, vec2(2127.1, 81.17)), dot(p, vec2(1269.5, 283.37)));
+  return fract(sin(p) * 43758.5453);
+}
+
+float noise(vec2 p) {
+  vec2 i = floor(p), f = fract(p), u = f * f * (3.0 - 2.0 * f);
+  float n = mix(
+    mix(dot(-1.0 + 2.0 * hash(i + vec2(0.0, 0.0)), f - vec2(0.0, 0.0)),
+        dot(-1.0 + 2.0 * hash(i + vec2(1.0, 0.0)), f - vec2(1.0, 0.0)), u.x),
+    mix(dot(-1.0 + 2.0 * hash(i + vec2(0.0, 1.0)), f - vec2(0.0, 1.0)),
+        dot(-1.0 + 2.0 * hash(i + vec2(1.0, 1.0)), f - vec2(1.0, 1.0)), u.x),
+    u.y
+  );
+  return 0.5 + 0.5 * n;
+}
+
+void main() {
+  float t = iTime * uTimeSpeed;
+  vec2 uv = gl_FragCoord.xy / iResolution.xy;
+  float ratio = iResolution.x / iResolution.y;
+  vec2 tuv = uv - 0.5 + uCenterOffset;
+  tuv /= max(uZoom, 0.001);
+
+  float degree = noise(vec2(t * 0.1, tuv.x * tuv.y) * uNoiseScale);
+  tuv.y *= 1.0 / ratio;
+  tuv *= Rot(radians((degree - 0.5) * uRotationAmount + 180.0));
+  tuv.y *= ratio;
+
+  float frequency = uWarpFrequency;
+  float ws = max(uWarpStrength, 0.001);
+  float amplitude = uWarpAmplitude / ws;
+  float warpTime = t * uWarpSpeed;
+  tuv.x += sin(tuv.y * frequency + warpTime) / amplitude;
+  tuv.y += sin(tuv.x * (frequency * 1.5) + warpTime) / (amplitude * 0.5);
+
+  vec3 colLav  = uColor1;
+  vec3 colOrg  = uColor2;
+  vec3 colDark = uColor3;
+  float b = uColorBalance;
+  float s = max(uBlendSoftness, 0.0);
+  mat2 blendRot = Rot(radians(uBlendAngle));
+  float blendX = (tuv * blendRot).x;
+  float edge0 = -0.3 - b - s;
+  float edge1 =  0.2 - b + s;
+  float v0 =  0.5 - b + s;
+  float v1 = -0.3 - b - s;
+  vec3 layer1 = mix(colDark, colOrg, S(edge0, edge1, blendX));
+  vec3 layer2 = mix(colOrg, colLav, S(edge0, edge1, blendX));
+  vec3 col = mix(layer1, layer2, S(v0, v1, tuv.y));
+
+  // Semicircle dome from bottom-center edge
+  vec2 spotCenter = vec2(0.5, -0.2);
+  vec2 spotUv = uv - spotCenter;
+  spotUv.x *= ratio * 0.7;
+  float dist = length(spotUv);
+  float spotlight = 1.0 - smoothstep(0.0, 1.3, dist);
+  spotlight = pow(spotlight, 0.6);
+  col *= spotlight;
+
+  // Grain
+  vec2 grainUv = uv * max(uGrainScale, 0.001);
+  if (uGrainAnimated > 0.5) { grainUv += vec2(iTime * 0.05); }
+  float grain = fract(sin(dot(grainUv, vec2(12.9898, 78.233))) * 43758.5453);
+  col += (grain - 0.5) * uGrainAmount;
+
+  // Post-processing
+  col = (col - 0.5) * uContrast + 0.5;
+  float luma = dot(col, vec3(0.2126, 0.7152, 0.0722));
+  col = mix(vec3(luma), col, uSaturation);
+  col = pow(max(col, 0.0), vec3(1.0 / max(uGamma, 0.001)));
+  col = clamp(col, 0.0, 1.0);
+
+  fragColor = vec4(col, 1.0);
+}`;
+
+    function compileShader(type, src) {
+      const s = gl.createShader(type);
+      gl.shaderSource(s, src);
+      gl.compileShader(s);
+      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS))
+        throw new Error(gl.getShaderInfoLog(s));
+      return s;
+    }
+
+    const program = gl.createProgram();
+    gl.attachShader(program, compileShader(gl.VERTEX_SHADER, vertexSrc));
+    gl.attachShader(program, compileShader(gl.FRAGMENT_SHADER, fragmentSrc));
+    gl.linkProgram(program);
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS))
+      throw new Error(gl.getProgramInfoLog(program));
+    gl.useProgram(program);
+
+    const posAttr = gl.getAttribLocation(program, 'position');
+    const triVerts = new Float32Array([-1, -1, 3, -1, -1, 3]);
+    const vao = gl.createVertexArray();
+    gl.bindVertexArray(vao);
+    const buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, triVerts, gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(posAttr);
+    gl.vertexAttribPointer(posAttr, 2, gl.FLOAT, false, 0, 0);
+    gl.bindVertexArray(null);
+
+    const uniforms = {
+      iTime: gl.getUniformLocation(program, 'iTime'),
+      iResolution: gl.getUniformLocation(program, 'iResolution'),
+      uTimeSpeed: gl.getUniformLocation(program, 'uTimeSpeed'),
+      uColorBalance: gl.getUniformLocation(program, 'uColorBalance'),
+      uWarpStrength: gl.getUniformLocation(program, 'uWarpStrength'),
+      uWarpFrequency: gl.getUniformLocation(program, 'uWarpFrequency'),
+      uWarpSpeed: gl.getUniformLocation(program, 'uWarpSpeed'),
+      uWarpAmplitude: gl.getUniformLocation(program, 'uWarpAmplitude'),
+      uBlendAngle: gl.getUniformLocation(program, 'uBlendAngle'),
+      uBlendSoftness: gl.getUniformLocation(program, 'uBlendSoftness'),
+      uRotationAmount: gl.getUniformLocation(program, 'uRotationAmount'),
+      uNoiseScale: gl.getUniformLocation(program, 'uNoiseScale'),
+      uGrainAmount: gl.getUniformLocation(program, 'uGrainAmount'),
+      uGrainScale: gl.getUniformLocation(program, 'uGrainScale'),
+      uGrainAnimated: gl.getUniformLocation(program, 'uGrainAnimated'),
+      uContrast: gl.getUniformLocation(program, 'uContrast'),
+      uGamma: gl.getUniformLocation(program, 'uGamma'),
+      uSaturation: gl.getUniformLocation(program, 'uSaturation'),
+      uCenterOffset: gl.getUniformLocation(program, 'uCenterOffset'),
+      uZoom: gl.getUniformLocation(program, 'uZoom'),
+      uColor1: gl.getUniformLocation(program, 'uColor1'),
+      uColor2: gl.getUniformLocation(program, 'uColor2'),
+      uColor3: gl.getUniformLocation(program, 'uColor3'),
+    };
+
+    gl.uniform1f(uniforms.uTimeSpeed, 0.2);
+    gl.uniform1f(uniforms.uColorBalance, 3);
+    gl.uniform1f(uniforms.uWarpStrength, 1.0);
+    gl.uniform1f(uniforms.uWarpFrequency, 3.0);
+    gl.uniform1f(uniforms.uWarpSpeed, 0.3);
+    gl.uniform1f(uniforms.uWarpAmplitude, 100.0);
+    gl.uniform1f(uniforms.uBlendAngle, 0.0);
+    gl.uniform1f(uniforms.uBlendSoftness, 0.3);
+    gl.uniform1f(uniforms.uRotationAmount, 40.0);
+    gl.uniform1f(uniforms.uNoiseScale, 1.9);
+    gl.uniform1f(uniforms.uGrainAmount, 0.15);
+    gl.uniform1f(uniforms.uGrainScale, 1.0);
+    gl.uniform1f(uniforms.uGrainAnimated, 1.0);
+    gl.uniform1f(uniforms.uContrast, 1.3);
+    gl.uniform1f(uniforms.uGamma, 1.0);
+    gl.uniform1f(uniforms.uSaturation, 0.0);
+    gl.uniform2f(uniforms.uCenterOffset, 0.0, 0.0);
+    gl.uniform1f(uniforms.uZoom, 0.7);
+    // Colors: slightly dimmed white center so the photo stands out
+    gl.uniform3f(uniforms.uColor3, 0.1, 0.1, 0.1);   // dark edges
+    gl.uniform3f(uniforms.uColor2, 0.6, 0.6, 0.6);   // mid gray
+    gl.uniform3f(uniforms.uColor1, 0.85, 0.85, 0.85); // dimmed center
+
+    const bgT0 = performance.now();
+
+    function bgFrame(now) {
+      requestAnimationFrame(bgFrame);
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const w = window.innerWidth * dpr;
+      const h = window.innerHeight * dpr;
+      if (bgCanvas.width !== w || bgCanvas.height !== h) {
+        bgCanvas.width = w;
+        bgCanvas.height = h;
+        gl.viewport(0, 0, w, h);
+      }
+      gl.uniform1f(uniforms.iTime, (now - bgT0) * 0.001);
+      gl.uniform2f(uniforms.iResolution, bgCanvas.width, bgCanvas.height);
+      gl.bindVertexArray(vao);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+      gl.bindVertexArray(null);
+    }
+    requestAnimationFrame(bgFrame);
+
+
+    // ══════════════════════════════════════════════════════════════
+    // PART 2: Glyph Dither — harsh.png (baked settings)
+    // ══════════════════════════════════════════════════════════════
+
+    const glyphCanvas = document.getElementById('glyph-canvas');
+    const gCtx = glyphCanvas.getContext('2d');
+    const glyphWrap = document.getElementById('glyph-wrap');
+    const gdpr = window.devicePixelRatio || 1;
+
+    // Finalized settings
+    const P = {
+      chars: '.;:-=+*#%@',
+      scale: 20,
+      spacing: 0,
+      gamma: 1,
+      phase: 0,
+      colormode: 'mono',
+      invert: false,
+      invertcolor: false,
+      radius: 3.4,
+      strength: 3,
+      hardness: 26,
+      tail: 35,
+      fluidity: 70,
+      dissipation: 37,
+      momentum: 17,
+      nscale: 4,
+      nspeed: 6,
+      namp: 35,
+      parallax: 3
+    };
+
+    let gSIZE = 0, gCOLS = 0, gROWS = 0, gCW = 0, gCH = 0;
+    let gCells = [], gFieldVX = null, gFieldVY = null;
+    let gMouseX = 0, gMouseY = 0, gSmMX = 0, gSmMY = 0, gPrevMX = 0, gPrevMY = 0;
+    let gPrlxX = 0, gPrlxY = 0;
+    let gImg = null;
+
+    // Noise functions
+    function ghash(x, y) {
+      let h = (Math.imul(x, 374761393) + Math.imul(y, 668265263)) >>> 0;
+      h = Math.imul(h ^ (h >>> 13), 1274126177) >>> 0;
+      return (h ^ (h >>> 16)) / 4294967296;
+    }
+    function gsmoothNoise(x, y) {
+      const ix = Math.floor(x), iy = Math.floor(y);
+      const fx = x - ix, fy = y - iy;
+      const ux = fx * fx * (3 - 2 * fx), uy = fy * fy * (3 - 2 * fy);
+      return ghash(ix, iy) * (1 - ux) * (1 - uy) + ghash(ix + 1, iy) * ux * (1 - uy) +
+        ghash(ix, iy + 1) * (1 - ux) * uy + ghash(ix + 1, iy + 1) * ux * uy;
+    }
+    function gfbm(x, y) {
+      return gsmoothNoise(x, y) * 0.5 + gsmoothNoise(x * 2, y * 2) * 0.3 + gsmoothNoise(x * 4, y * 4) * 0.2;
+    }
+
+    // Build glyph grid — same approach as harsh-dither.html
+    function gBuild(image) {
+      // Square, sized to fit viewport height (like the tuner)
+      gSIZE = Math.round(Math.min(window.innerWidth, window.innerHeight) * 0.96);
+
+      glyphCanvas.width = gSIZE * gdpr;
+      glyphCanvas.height = gSIZE * gdpr;
+      glyphCanvas.style.width = gSIZE + 'px';
+      glyphCanvas.style.height = gSIZE + 'px';
+      glyphWrap.style.width = gSIZE + 'px';
+      glyphWrap.style.height = gSIZE + 'px';
+
+      const fontSize = Math.max(5, Math.round(P.scale * 0.13));
+      const mc = document.createElement('canvas').getContext('2d');
+      mc.font = fontSize + 'px monospace';
+      gCW = Math.ceil(mc.measureText('M').width) + P.spacing;
+      gCH = fontSize + P.spacing;
+      gCOLS = Math.floor(gSIZE / gCW);
+      gROWS = Math.floor(gSIZE / gCH);
+
+      const sc = document.createElement('canvas');
+      sc.width = gCOLS; sc.height = gROWS;
+      const sCtx = sc.getContext('2d');
+
+      // 1:1 square crop, shifted slightly right to frame the shoulders better
+      const iw = image.naturalWidth, ih = image.naturalHeight;
+      let sx = 0, sy = 0, sw = iw, sh = ih;
+      if (iw / ih > 1) { 
+        sw = ih; 
+        // 0.5 is center, 0.8 shifts the crop box right to reveal the right shoulder
+        sx = (iw - sw) * 0.45; 
+      }
+      else { 
+        sh = iw; 
+        sy = (ih - sh) / 2; 
+      }
+      sCtx.drawImage(image, sx, sy, sw, sh, 0, 0, gCOLS, gROWS);
+      const d = sCtx.getImageData(0, 0, gCOLS, gROWS).data;
+
+      const chars = P.chars || ' ';
+      gCells = [];
+      for (let r = 0; r < gROWS; r++) {
+        for (let c = 0; c < gCOLS; c++) {
+          const i = (r * gCOLS + c) * 4;
+          const ri = d[i], gi = d[i + 1], bi = d[i + 2], ai = d[i + 3];
+          let b = (ri * 0.299 + gi * 0.587 + bi * 0.114) / 255;
+          b = Math.pow(b, P.gamma / 63);
+          b += Math.sin((c + r) * 0.18 + P.phase * Math.PI / 180) * 0.04;
+          b = Math.max(0, Math.min(1, b));
+          if (P.invert) b = 1 - b;
+
+          const isTransparent = ai < 30;
+          const isNearWhite = b < 0.08 && ai > 200;
+          const skip = isTransparent || isNearWhite;
+
+          const char = skip ? ' ' : chars[Math.min(chars.length - 1, Math.floor(b * chars.length))];
+          gCells.push({ bx: c * gCW, by: r * gCH, char, ri, gi, bi, skip });
+        }
+      }
+
+      gFieldVX = new Float32Array(gCOLS * gROWS);
+      gFieldVY = new Float32Array(gCOLS * gROWS);
+      gMouseX = gSmMX = gPrevMX = gSIZE / 2;
+      gMouseY = gSmMY = gPrevMY = gSIZE / 2;
+    }
+
+    // Trail update
+    function gUpdateTrail() {
+      if (!gFieldVX) return;
+      const lag = P.momentum / 100;
+      gSmMX += (gMouseX - gSmMX) * (1 - lag * 0.9);
+      gSmMY += (gMouseY - gSmMY) * (1 - lag * 0.9);
+      const mvx = gSmMX - gPrevMX, mvy = gSmMY - gPrevMY;
+      gPrevMX = gSmMX; gPrevMY = gSmMY;
+      const fluidSmooth = P.fluidity / 100;
+      const R = Math.max(2, P.radius * (gSIZE / 100) * 3.5);
+      const str = P.strength * 0.25;
+      const mcol = Math.floor(gSmMX / gCW), mrow = Math.floor(gSmMY / gCH);
+      const ri = Math.ceil(R / gCW);
+
+      for (let dr = -ri; dr <= ri; dr++) {
+        for (let dc = -ri; dc <= ri; dc++) {
+          const col = mcol + dc, row = mrow + dr;
+          if (col < 0 || col >= gCOLS || row < 0 || row >= gROWS) continue;
+          const cx = col * gCW + gCW / 2, cy = row * gCH + gCH / 2;
+          const dx = cx - gSmMX, dy = cy - gSmMY;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const t = dist / R;
+          const h = P.hardness / 100;
+          const softFall = t < 1 ? (Math.cos(t * Math.PI) * 0.5 + 0.5) : 0;
+          const hardFall = t < 1 ? (1 - t) : 0;
+          const falloff = softFall * (1 - h) + hardFall * h;
+          if (falloff <= 0) continue;
+          const idx = row * gCOLS + col;
+          const addX = mvx * falloff * str;
+          const addY = mvy * falloff * str;
+          gFieldVX[idx] = gFieldVX[idx] * fluidSmooth + addX * (1 - fluidSmooth) + addX;
+          gFieldVY[idx] = gFieldVY[idx] * fluidSmooth + addY * (1 - fluidSmooth) + addY;
+        }
+      }
+
+      const tailDecay = 0.92 + (P.tail / 100) * 0.079;
+      for (let i = 0; i < gFieldVX.length; i++) {
+        gFieldVX[i] *= tailDecay;
+        gFieldVY[i] *= tailDecay;
+      }
+    }
+
+    // Render glyph
+    const gT0 = performance.now();
+    function gRender() {
+      requestAnimationFrame(gRender);
+      if (!gCells.length || !gFieldVX) return;
+      gUpdateTrail();
+
+      const normX = (gMouseX / gSIZE - 0.5) * 2;
+      const normY = (gMouseY / gSIZE - 0.5) * 2;
+      gPrlxX += (normX - gPrlxX) * 0.06;
+      gPrlxY += (normY - gPrlxY) * 0.06;
+      const px = gPrlxX * P.parallax;
+      const py = gPrlxY * P.parallax;
+
+      const t = (performance.now() - gT0) * 0.001;
+      const ns = P.nscale * 0.003;
+      const spd = P.nspeed * 0.0004;
+      const amp = P.namp * 0.18;
+
+      gCtx.setTransform(gdpr, 0, 0, gdpr, 0, 0);
+      gCtx.clearRect(0, 0, gSIZE, gSIZE);
+      gCtx.font = 'bold ' + gCH + 'px monospace';
+      gCtx.textBaseline = 'top';
+
+      for (let i = 0; i < gCells.length; i++) {
+        const cell = gCells[i];
+        if (cell.skip) continue;
+
+        const col = i % gCOLS, row = Math.floor(i / gCOLS);
+        const nx = gfbm(col * ns + t * spd, row * ns + 0.3);
+        const ny = gfbm(col * ns + 0.7 + t * spd * 0.8, row * ns + 1.1 + t * spd * 0.6);
+        const ndx = (nx - 0.5) * 2 * amp;
+        const ndy = (ny - 0.5) * 2 * amp;
+        const idx = row * gCOLS + col;
+        const x = cell.bx + ndx + gFieldVX[idx] + px;
+        const y = cell.by + ndy + gFieldVY[idx] + py;
+
+        // Full color mode
+        let ri = cell.ri, gi = cell.gi, bi = cell.bi;
+        gCtx.fillStyle = `rgb(${ri},${gi},${bi})`;
+        gCtx.fillText(cell.char, x, y);
+      }
+    }
+
+    // Mouse events on glyph wrap
+    glyphWrap.addEventListener('mousemove', e => {
+      const r = glyphWrap.getBoundingClientRect();
+      gMouseX = e.clientX - r.left;
+      gMouseY = e.clientY - r.top;
+    });
+    glyphWrap.addEventListener('touchmove', e => {
+      e.preventDefault();
+      const r = glyphWrap.getBoundingClientRect(), t = e.touches[0];
+      gMouseX = t.clientX - r.left;
+      gMouseY = t.clientY - r.top;
+    }, { passive: false });
+
+    // Resize handler
+    window.addEventListener('resize', () => {
+      if (gImg) gBuild(gImg);
+    });
+
+    // Boot
+    const srcImg = document.getElementById('src-img');
+    function initGlyph() {
+      gImg = srcImg;
+      gBuild(srcImg);
+    }
+    if (srcImg.complete && srcImg.naturalWidth) {
+      initGlyph();
+    } else {
+      srcImg.addEventListener('load', initGlyph);
+    }
+    gRender();
+  </script>
+</body>
+
+</html>
