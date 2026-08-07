@@ -9,22 +9,37 @@ import Logo from "./Logo";
 const CHAR_POOL = ["H", "A", "R", "S", "H", "h", "a", "r", "s", "h"];
 const BITMAP_SIZE = 128; // rasterize characters at 128px for crisp rendering
 
-// Pre-rasterize characters once into ImageBitmap via OffscreenCanvas / Canvas
-async function prerasterizeChars(pool: string[]): Promise<Map<string, ImageBitmap>> {
-  const cache = new Map<string, ImageBitmap>();
+type CharSource = ImageBitmap | HTMLCanvasElement;
+
+// Pre-rasterize characters once into CharSource via Canvas
+async function prerasterizeChars(pool: string[]): Promise<Map<string, CharSource>> {
+  const cache = new Map<string, CharSource>();
+  if (typeof window === "undefined") return cache;
+
   for (const char of pool) {
     if (cache.has(char)) continue;
     const canvas = document.createElement("canvas");
     canvas.width = BITMAP_SIZE;
     canvas.height = BITMAP_SIZE;
-    const ctx = canvas.getContext("2d")!;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) continue;
+
     ctx.fillStyle = "#ffffff";
     ctx.font = `900 ${BITMAP_SIZE * 0.75}px sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(char, BITMAP_SIZE / 2, BITMAP_SIZE / 2);
-    const bitmap = await createImageBitmap(canvas);
-    cache.set(char, bitmap);
+
+    try {
+      if ("createImageBitmap" in window) {
+        const bitmap = await createImageBitmap(canvas);
+        cache.set(char, bitmap);
+      } else {
+        cache.set(char, canvas);
+      }
+    } catch (e) {
+      cache.set(char, canvas);
+    }
   }
   return cache;
 }
@@ -32,7 +47,7 @@ async function prerasterizeChars(pool: string[]): Promise<Map<string, ImageBitma
 // ─── Physics particle ─────────────────────────────────────────────────────────
 type PhysicsParticle = {
   char: string;
-  bitmap: ImageBitmap;
+  source: CharSource;
   size: number;   // Display size in CSS px
   x: number;
   y: number;
@@ -49,7 +64,7 @@ const FRICTION = 0.22;
 const PHYSICS_H = 220;
 
 function buildParticles(
-  bitmapCache: Map<string, ImageBitmap>,
+  bitmapCache: Map<string, CharSource>,
   canvasW: number
 ): PhysicsParticle[] {
   const chars = Array.from(bitmapCache.keys());
@@ -60,7 +75,7 @@ function buildParticles(
 
   for (let i = 0; i < count; i++) {
     const char = CHAR_POOL[i % CHAR_POOL.length]!;
-    const bitmap = bitmapCache.get(char)!;
+    const source = bitmapCache.get(char)!;
     const size = isSmallScreen ? 20 : 24; // all same size
 
     const x = Math.random() * Math.max(10, canvasW - size);
@@ -68,7 +83,7 @@ function buildParticles(
 
     particles.push({
       char,
-      bitmap,
+      source,
       size,
       x,
       y,
@@ -103,7 +118,7 @@ export default function MobileNav() {
   const physOpacityRef = useRef<number>(0);
 
   // Pre-rasterized character bitmaps
-  const bitmapCacheRef = useRef<Map<string, ImageBitmap> | null>(null);
+  const bitmapCacheRef = useRef<Map<string, CharSource> | null>(null);
 
   // ── Scroll hide ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -126,7 +141,11 @@ export default function MobileNav() {
       bitmapCacheRef.current = cache;
     });
     return () => {
-      bitmapCacheRef.current?.forEach((bm) => bm.close());
+      bitmapCacheRef.current?.forEach((bm) => {
+        if ("close" in bm && typeof bm.close === "function") {
+          bm.close();
+        }
+      });
     };
   }, []);
 
@@ -189,7 +208,7 @@ export default function MobileNav() {
       ctx.save();
       ctx.translate(cx, cy);
       ctx.rotate((p.rotation * Math.PI) / 180);
-      ctx.drawImage(p.bitmap, -p.size / 2, -p.size / 2, p.size, p.size);
+      ctx.drawImage(p.source, -p.size / 2, -p.size / 2, p.size, p.size);
       ctx.restore();
     }
 
