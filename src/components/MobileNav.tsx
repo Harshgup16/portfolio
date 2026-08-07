@@ -242,11 +242,17 @@ export default function MobileNav() {
   // ── Open / close ───────────────────────────────────────────────────────────
   useEffect(() => {
     if (isOpen) {
-      document.body.style.overflow = "hidden";
+      const validLinks = linksRef.current.filter((el): el is HTMLAnchorElement => el !== null);
 
-      gsap.fromTo(headerRef.current, { opacity: 0, y: -20 }, { opacity: 1, y: 0, duration: 1.0, ease: "expo.out", delay: 0.4 });
-      gsap.fromTo(linksRef.current, { y: "120%", opacity: 0, rotate: 3 }, { y: "0%", opacity: 1, rotate: 0, duration: 1.2, stagger: 0.15, ease: "expo.out", delay: 0.45 });
-      gsap.fromTo(footerRef.current, { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 1.0, ease: "expo.out", delay: 0.6 });
+      if (headerRef.current) {
+        gsap.fromTo(headerRef.current, { opacity: 0, y: -20 }, { opacity: 1, y: 0, duration: 1.0, ease: "expo.out", delay: 0.4 });
+      }
+      if (validLinks.length > 0) {
+        gsap.fromTo(validLinks, { y: "120%", opacity: 0, rotate: 3 }, { y: "0%", opacity: 1, rotate: 0, duration: 1.2, stagger: 0.15, ease: "expo.out", delay: 0.45 });
+      }
+      if (footerRef.current) {
+        gsap.fromTo(footerRef.current, { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 1.0, ease: "expo.out", delay: 0.6 });
+      }
 
       const dpr = window.devicePixelRatio || 1;
       const W = window.innerWidth;
@@ -311,10 +317,7 @@ export default function MobileNav() {
     };
   }, []);
 
-  linksRef.current = [];
-  const addToLinks = (el: HTMLAnchorElement | null) => {
-    if (el && !linksRef.current.includes(el)) linksRef.current.push(el);
-  };
+
 
   return (
     <>
@@ -389,18 +392,33 @@ export default function MobileNav() {
               { label: "Experience", href: "/experience" },
               { label: "Certificates", href: "/certificates" },
               { label: "About", href: "/#about" },
-            ].map(({ label, href }) => (
-              <div key={label} className="overflow-hidden p-2 -m-2">
-                <Link ref={addToLinks} href={href} onClick={() => setIsOpen(false)} className="block text-5xl font-medium tracking-tight hover:text-gray-300 transition-colors transform-gpu origin-left">
-                  {label}
-                </Link>
-              </div>
-            ))}
-            <div className="overflow-hidden p-2 -m-2">
-              <a href="mailto:hkgupta160420@gmail.com" onClick={() => setIsOpen(false)} className="block text-5xl font-medium tracking-tight hover:text-gray-300 transition-colors transform-gpu origin-left">
-                Reach out
-              </a>
-            </div>
+              { label: "Reach out", href: "mailto:hkgupta160420@gmail.com" },
+            ].map(({ label, href }, i) => {
+              const isMailto = href.startsWith("mailto:");
+              return (
+                <div key={label} className="overflow-hidden p-2 -m-2">
+                  {isMailto ? (
+                    <a
+                      ref={(el) => { linksRef.current[i] = el; }}
+                      href={href}
+                      onClick={() => setIsOpen(false)}
+                      className="block text-5xl font-medium tracking-tight hover:text-gray-300 transition-colors transform-gpu origin-left"
+                    >
+                      {label}
+                    </a>
+                  ) : (
+                    <Link
+                      ref={(el) => { linksRef.current[i] = el; }}
+                      href={href}
+                      onClick={() => setIsOpen(false)}
+                      className="block text-5xl font-medium tracking-tight hover:text-gray-300 transition-colors transform-gpu origin-left"
+                    >
+                      {label}
+                    </Link>
+                  )}
+                </div>
+              );
+            })}
           </div>
 
           <div ref={footerRef} className="p-8 pb-12 flex flex-col gap-4">
