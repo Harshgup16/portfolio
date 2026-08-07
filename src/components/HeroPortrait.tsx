@@ -4,12 +4,6 @@
 import { useEffect, useRef } from 'react';
 
 const HERO_IMAGE_SRC = "/harsh.png";
-let cachedImg: HTMLImageElement | null = null;
-
-if (typeof window !== 'undefined') {
-  cachedImg = new Image();
-  cachedImg.src = HERO_IMAGE_SRC;
-}
 
 export default function HeroPortrait() {
   const bgCanvasRef = useRef(null);
@@ -458,18 +452,49 @@ void main(){
 
     async function initGlyph(img: HTMLImageElement) {
       gImg = img;
-      // Monospace is a system font, so we can skip the await document.fonts.ready for speed
       gBuild(img);
       gRender();
     }
 
-    if (cachedImg?.complete && cachedImg.naturalWidth) {
-      initGlyph(cachedImg);
-    } else {
-      cachedImg?.addEventListener('load', () => initGlyph(cachedImg!));
+    let isInitialized = false;
+    const heroImg = new Image();
+
+    const handleImgSuccess = async () => {
+      if (isInitialized) return;
+      isInitialized = true;
+      try {
+        if (heroImg.decode) {
+          await heroImg.decode();
+        }
+      } catch (e) {
+        // Ignore decode error if image is already renderable
+      }
+      initGlyph(heroImg);
+    };
+
+    heroImg.onload = handleImgSuccess;
+    heroImg.onerror = () => {
+      console.warn("Hero portrait image load error, retrying...");
+      const retryImg = new Image();
+      retryImg.onload = () => {
+        if (!isInitialized) {
+          isInitialized = true;
+          initGlyph(retryImg);
+        }
+      };
+      retryImg.src = `${HERO_IMAGE_SRC}?t=${Date.now()}`;
+    };
+
+    // Set src after setting handlers so load is never missed
+    heroImg.src = HERO_IMAGE_SRC;
+
+    if (heroImg.complete && heroImg.naturalWidth > 0) {
+      handleImgSuccess();
     }
 
     return () => {
+      heroImg.onload = null;
+      heroImg.onerror = null;
       cancelAnimationFrame(bgFrameId);
       cancelAnimationFrame(glyphFrameId);
       window.removeEventListener('resize', resizeBg);
@@ -478,7 +503,6 @@ void main(){
         glyphWrap?.removeEventListener('mousemove', handleMouseMove);
         glyphWrap?.removeEventListener('touchmove', handleTouchMove);
       }
-      cachedImg?.removeEventListener('load', () => initGlyph(cachedImg!));
     };
   }, []);
 

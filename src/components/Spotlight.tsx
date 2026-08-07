@@ -1,12 +1,56 @@
 "use client";
 
-import React, { useRef } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import Link from "next/link";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import ScrollTrigger from "gsap/ScrollTrigger";
 
 gsap.registerPlugin(ScrollTrigger);
+
+function LazyVideo({ src, className }: { src: string; className?: string }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            if (!video.src) {
+              video.src = src;
+              video.load();
+              setIsLoaded(true);
+            }
+            video.play().catch(() => {});
+          } else {
+            if (video.src) {
+              video.pause();
+            }
+          }
+        });
+      },
+      { rootMargin: "300px 0px 300px 0px" }
+    );
+
+    observer.observe(video);
+    return () => observer.disconnect();
+  }, [src]);
+
+  return (
+    <video
+      ref={videoRef}
+      loop
+      muted
+      playsInline
+      preload="none"
+      className={className}
+    />
+  );
+}
 
 const projects: { img?: string; video?: string; containVideo?: boolean; name: string; category: string; subtitle: string; link?: string; }[] = [
   {
@@ -193,7 +237,7 @@ export default function Spotlight() {
               className="spotlight-img w-full aspect-video opacity-50 overflow-hidden transition-all duration-300 block cursor-pointer"
             >
               {p.video ? (
-                <video src={p.video} autoPlay loop muted playsInline className={`w-full h-full ${p.containVideo ? 'object-contain bg-black/20 rounded-lg' : 'object-cover'}`} />
+                <LazyVideo src={p.video} className={`w-full h-full ${p.containVideo ? 'object-contain bg-black/20 rounded-lg' : 'object-cover'}`} />
               ) : (
                 /* eslint-disable-next-line @next/next/no-img-element */
                 <img src={p.img} alt={p.name} className="w-full h-full object-cover" />
@@ -240,7 +284,7 @@ export default function Spotlight() {
                 className="w-full aspect-video overflow-hidden block cursor-pointer"
               >
                 {p.video ? (
-                  <video src={p.video} autoPlay loop muted playsInline className={`w-full h-full ${p.containVideo ? 'object-contain bg-black/20 rounded-lg' : 'object-cover'}`} />
+                  <LazyVideo src={p.video} className={`w-full h-full ${p.containVideo ? 'object-contain bg-black/20 rounded-lg' : 'object-cover'}`} />
                 ) : (
                   /* eslint-disable-next-line @next/next/no-img-element */
                   <img src={p.img} alt={p.name} className="w-full h-full object-cover" />
