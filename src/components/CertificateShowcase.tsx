@@ -4,6 +4,7 @@ import React, { useRef } from "react";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import ScrollTrigger from "gsap/ScrollTrigger";
+import { useAudio } from "./AudioProvider";
 
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger, useGSAP);
@@ -59,6 +60,7 @@ const TOTAL_PAD = String(certificates.length).padStart(2, "0");
 
 export default function CertificateShowcase() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const { playHover, playClick } = useAudio();
 
   useGSAP(() => {
     // Desktop row animations
@@ -121,6 +123,7 @@ export default function CertificateShowcase() {
           {certificates.map((cert, i) => (
             <div 
               key={i} 
+              onMouseEnter={playHover}
               className="certificate-row group border-b border-[#141414]/10 hover:border-[#141414]/50 transition-colors duration-500 py-8 flex items-center cursor-default"
             >
               <div className="w-[10%] text-2xl font-black text-[#a02128] transition-colors duration-500">
@@ -144,7 +147,13 @@ export default function CertificateShowcase() {
                 </div>
               </div>
               <div className="w-[30%] flex justify-end">
-                <a href={cert.image} target="_blank" rel="noopener noreferrer" className="block w-64 h-40 relative overflow-hidden rounded-md border border-[#141414]/20 group-hover:border-[#141414]/60 transition-colors duration-500">
+                <a
+                  href={cert.image}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={playClick}
+                  className="block w-64 h-40 relative overflow-hidden rounded-md border border-[#141414]/20 group-hover:border-[#141414]/60 transition-colors duration-500"
+                >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={cert.image} alt={cert.name} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500" />
                 </a>
@@ -158,7 +167,11 @@ export default function CertificateShowcase() {
         {/* ============================================================ */}
         <div className="lg:hidden flex flex-col gap-16">
           {certificates.map((cert, i) => (
-            <article key={i} className="certificate-card flex flex-col gap-0 border-t border-[#141414]/10 pt-8">
+            <article
+              key={i}
+              onMouseEnter={playHover}
+              className="certificate-card flex flex-col gap-0 border-t border-[#141414]/10 pt-8"
+            >
               {/* Counter */}
               <div className="mb-6 flex justify-between items-start">
                 <h2 className="text-[4rem] font-black leading-none tracking-tight text-[#a02128]">

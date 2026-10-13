@@ -7,7 +7,7 @@ import { useAudio } from "./AudioProvider";
 
 export default function BottomNav() {
   const navRef = useRef<HTMLDivElement>(null);
-  const { isPlaying, togglePlay } = useAudio();
+  const { isPlaying, togglePlay, playHover, playClick } = useAudio();
   const [currentDate, setCurrentDate] = useState("AUGUST 2024—NOW");
 
   useEffect(() => {
@@ -45,6 +45,8 @@ export default function BottomNav() {
         
         <Link 
           href="/"
+          onMouseEnter={playHover}
+          onClick={playClick}
           className="nav-item shadow-lg relative bg-[#a02128] flex items-center justify-center w-12 md:w-16 px-2 py-2 cursor-pointer"
         >
           <div className="absolute top-1 left-1 w-1.5 h-1.5 border-t border-l border-white/60"></div>
@@ -56,7 +58,11 @@ export default function BottomNav() {
 
         <div 
           className="nav-item shadow-lg relative bg-[#a02128] flex items-center justify-center px-5 py-2 md:px-8 gap-3 cursor-pointer"
-          onClick={togglePlay}
+          onMouseEnter={playHover}
+          onClick={() => {
+            playClick();
+            togglePlay();
+          }}
         >
           <div className="absolute top-1 left-1 w-1.5 h-1.5 border-t border-l border-white/60"></div>
           <div className="absolute top-1 right-1 w-1.5 h-1.5 border-t border-r border-white/60"></div>

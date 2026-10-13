@@ -4,6 +4,7 @@ import React, { useRef } from "react";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import ScrollTrigger from "gsap/ScrollTrigger";
+import { useAudio } from "./AudioProvider";
 
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger, useGSAP);
@@ -100,6 +101,7 @@ const TOTAL_PAD = String(projects.length).padStart(2, "0");
 
 export default function ProjectShowcase() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const { playHover, playClick } = useAudio();
 
   useGSAP(() => {
     // Desktop row animations
@@ -162,6 +164,7 @@ export default function ProjectShowcase() {
           {projects.map((p, i) => (
             <div 
               key={i} 
+              onMouseEnter={playHover}
               className="project-row group border-b border-[#141414]/10 hover:border-[#141414]/50 transition-colors duration-500 py-8 flex items-center cursor-default"
             >
               <div className="w-[10%] text-2xl font-black text-[#a02128] transition-colors duration-500">
@@ -186,7 +189,13 @@ export default function ProjectShowcase() {
                 </div>
               </div>
               <div className="w-[10%] text-right text-lg font-medium">
-                <a href={p.link} target="_blank" rel="noopener noreferrer" className="text-[#141414]/50 hover:text-[#a02128] transition-colors duration-300 underline underline-offset-4">
+                <a
+                  href={p.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={playClick}
+                  className="text-[#141414]/50 hover:text-[#a02128] transition-colors duration-300 underline underline-offset-4"
+                >
                   Link ↗
                 </a>
               </div>
@@ -199,7 +208,11 @@ export default function ProjectShowcase() {
         {/* ============================================================ */}
         <div className="lg:hidden flex flex-col gap-16">
           {projects.map((p, i) => (
-            <article key={i} className="project-card flex flex-col gap-0 border-t border-[#141414]/10 pt-8">
+            <article
+              key={i}
+              onMouseEnter={playHover}
+              className="project-card flex flex-col gap-0 border-t border-[#141414]/10 pt-8"
+            >
               {/* Counter */}
               <div className="mb-6 flex justify-between items-start">
                 <h2 className="text-[4rem] font-black leading-none tracking-tight text-[#a02128]">
@@ -208,7 +221,13 @@ export default function ProjectShowcase() {
                     /{TOTAL_PAD}
                   </span>
                 </h2>
-                <a href={p.link} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-[#141414]/60 hover:text-[#a02128] mt-3 underline underline-offset-4 transition-colors">
+                <a
+                  href={p.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={playClick}
+                  className="text-sm font-semibold text-[#141414]/60 hover:text-[#a02128] mt-3 underline underline-offset-4 transition-colors"
+                >
                   Link ↗
                 </a>
               </div>

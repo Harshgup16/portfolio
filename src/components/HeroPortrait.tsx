@@ -9,10 +9,14 @@ export default function HeroPortrait() {
   const bgCanvasRef = useRef(null);
   const glyphCanvasRef = useRef(null);
   const glyphWrapRef = useRef(null);
+  const sentinelRef = useRef(null);
 
   useEffect(() => {
     let bgFrameId: number;
     let glyphFrameId: number;
+    let isVisible = true;
+    let bgRunning = false;
+    let glyphRunning = false;
 
     // ══════════════════════════════════════════════════════════════
     // PART 1: Grainient animated background (WebGL2)
@@ -175,15 +179,33 @@ void main(){
 
     const bgT0 = performance.now();
     function bgFrame(now) {
+      if (!isVisible) {
+        bgRunning = false;
+        return;
+      }
       bgFrameId = requestAnimationFrame(bgFrame);
-      resizeBg();
       gl.uniform1f(U.iTime, (now - bgT0) * 0.001);
       gl.uniform2f(U.iResolution, bgCanvas.width, bgCanvas.height);
       gl.bindVertexArray(vao);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
       gl.bindVertexArray(null);
     }
-    bgFrameId = requestAnimationFrame(bgFrame);
+
+    function startBg() {
+      if (!bgRunning && isVisible) {
+        bgRunning = true;
+        bgFrameId = requestAnimationFrame(bgFrame);
+      }
+    }
+
+    function stopBg() {
+      if (bgRunning) {
+        bgRunning = false;
+        cancelAnimationFrame(bgFrameId);
+      }
+    }
+
+    startBg();
 
     // ══════════════════════════════════════════════════════════════
     // PART 2: Glyph Dither
@@ -357,6 +379,10 @@ void main(){
     const IDLE_MS = 500; // stop re-drawing after 500ms of no motion
 
     function gRender() {
+      if (!isVisible) {
+        glyphRunning = false;
+        return;
+      }
       glyphFrameId = requestAnimationFrame(gRender);
       if (!gCells.length || !gFieldVX) return;
 
@@ -450,10 +476,25 @@ void main(){
     }
     window.addEventListener('resize', handleResize);
 
+    function startGlyph() {
+      if (!glyphRunning && isVisible && isInitialized) {
+        glyphRunning = true;
+        gLastMotion = performance.now();
+        glyphFrameId = requestAnimationFrame(gRender);
+      }
+    }
+
+    function stopGlyph() {
+      if (glyphRunning) {
+        glyphRunning = false;
+        cancelAnimationFrame(glyphFrameId);
+      }
+    }
+
     async function initGlyph(img: HTMLImageElement) {
       gImg = img;
       gBuild(img);
-      gRender();
+      startGlyph();
     }
 
     let isInitialized = false;
@@ -492,11 +533,33 @@ void main(){
       handleImgSuccess();
     }
 
+    // Freeze render loops when scrolled out of view to free 100% GPU
+    const sentinel = sentinelRef.current;
+    let observer: IntersectionObserver | null = null;
+    if (sentinel && typeof IntersectionObserver !== 'undefined') {
+      observer = new IntersectionObserver(([entry]) => {
+        isVisible = entry.isIntersecting;
+        if (entry.isIntersecting) {
+          if (bgCanvas) bgCanvas.style.visibility = 'visible';
+          if (glyphWrap) glyphWrap.style.visibility = 'visible';
+          startBg();
+          startGlyph();
+        } else {
+          stopBg();
+          stopGlyph();
+          if (bgCanvas) bgCanvas.style.visibility = 'hidden';
+          if (glyphWrap) glyphWrap.style.visibility = 'hidden';
+        }
+      }, { rootMargin: '100px 0px 100px 0px' });
+      observer.observe(sentinel);
+    }
+
     return () => {
+      observer?.disconnect();
       heroImg.onload = null;
       heroImg.onerror = null;
-      cancelAnimationFrame(bgFrameId);
-      cancelAnimationFrame(glyphFrameId);
+      stopBg();
+      stopGlyph();
       window.removeEventListener('resize', resizeBg);
       window.removeEventListener('resize', handleResize);
       if (!isMobile) {
@@ -507,7 +570,7 @@ void main(){
   }, []);
 
   return (
-    <>
+    <div ref={sentinelRef} className="relative w-full h-full pointer-events-none">
       {/* Grainient WebGL background — fixed to viewport */}
       <canvas
         ref={bgCanvasRef}
@@ -530,6 +593,6 @@ void main(){
       >
         <canvas ref={glyphCanvasRef} style={{ display: 'block', width: '100%', height: '100%' }} />
       </div>
-    </>
+    </div>
   );
 }

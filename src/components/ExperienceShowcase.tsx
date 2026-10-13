@@ -4,6 +4,7 @@ import React, { useRef } from "react";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import ScrollTrigger from "gsap/ScrollTrigger";
+import { useAudio } from "./AudioProvider";
 
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger, useGSAP);
@@ -40,6 +41,7 @@ const TOTAL_PAD = String(experiences.length).padStart(2, "0");
 
 export default function ExperienceShowcase() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const { playHover, playClick } = useAudio();
 
   useGSAP(() => {
     // Desktop row animations
@@ -102,6 +104,7 @@ export default function ExperienceShowcase() {
           {experiences.map((exp, i) => (
             <div 
               key={i} 
+              onMouseEnter={playHover}
               className="experience-row group border-b border-[#141414]/10 hover:border-[#141414]/50 transition-colors duration-500 py-8 flex items-center cursor-default"
             >
               <div className="w-[10%] text-2xl font-black text-[#a02128] transition-colors duration-500">
@@ -129,7 +132,13 @@ export default function ExperienceShowcase() {
                 </div>
               </div>
               <div className="w-[10%] text-right text-lg font-medium">
-                <a href={exp.link} target="_blank" rel="noopener noreferrer" className="text-[#141414]/50 hover:text-[#a02128] transition-colors duration-300 underline underline-offset-4">
+                <a
+                  href={exp.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={playClick}
+                  className="text-[#141414]/50 hover:text-[#a02128] transition-colors duration-300 underline underline-offset-4"
+                >
                   Link ↗
                 </a>
               </div>
@@ -142,7 +151,11 @@ export default function ExperienceShowcase() {
         {/* ============================================================ */}
         <div className="lg:hidden flex flex-col gap-16">
           {experiences.map((exp, i) => (
-            <article key={i} className="experience-card flex flex-col gap-0 border-t border-[#141414]/10 pt-8">
+            <article
+              key={i}
+              onMouseEnter={playHover}
+              className="experience-card flex flex-col gap-0 border-t border-[#141414]/10 pt-8"
+            >
               {/* Counter & Certificate Link */}
               <div className="mb-6 flex justify-between items-start">
                 <h2 className="text-[4rem] font-black leading-none tracking-tight text-[#a02128]">
@@ -151,7 +164,13 @@ export default function ExperienceShowcase() {
                     /{TOTAL_PAD}
                   </span>
                 </h2>
-                <a href={exp.link} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-[#141414]/60 hover:text-[#a02128] mt-3 underline underline-offset-4 transition-colors">
+                <a
+                  href={exp.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={playClick}
+                  className="text-sm font-semibold text-[#141414]/60 hover:text-[#a02128] mt-3 underline underline-offset-4 transition-colors"
+                >
                   Link ↗
                 </a>
               </div>

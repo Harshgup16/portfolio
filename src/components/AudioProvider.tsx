@@ -3,65 +3,281 @@
 import { createContext, useContext, useEffect, useRef, useState, ReactNode } from "react";
 
 interface AudioContextType {
+  // Background music
   isPlaying: boolean;
   togglePlay: () => void;
   playMusic: () => void;
   pauseMusic: () => void;
+
+  // Sound effects (AUGE XP Web Audio Engine)
+  soundEnabled: boolean;
+  toggleSound: () => void;
+  playHover: () => void;
+  playClick: () => void;
+  playStep: () => void;
+  playMenuOpen: () => void;
+  playTransition: () => void;
+  playScramble: () => void;
 }
 
 const AudioContext = createContext<AudioContextType | undefined>(undefined);
 
+const SOUND_FILES = {
+  click: "/sounds/click.mp3",
+  menuOpen: "/sounds/menu-open.mp3",
+  transition: "/sounds/transition.mp3",
+  scramble: "/sounds/scramble.mp3",
+  hover: [
+    "/sounds/hover-1.mp3",
+    "/sounds/hover-2.mp3",
+    "/sounds/hover-3.mp3",
+    "/sounds/hover-4.mp3",
+  ],
+  step: [
+    "/sounds/step-1.mp3",
+    "/sounds/step-2.mp3",
+    "/sounds/step-3.mp3",
+    "/sounds/step-4.mp3",
+    "/sounds/step-5.mp3",
+    "/sounds/step-6.mp3",
+  ],
+};
+
 export function AudioProvider({ children }: { children: ReactNode }) {
   const [isPlaying, setIsPlaying] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [soundEnabled, setSoundEnabled] = useState(true);
 
+  // Background music ref
+  const musicRef = useRef<HTMLAudioElement | null>(null);
+
+  // Web Audio API refs
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const gainNodeRef = useRef<GainNode | null>(null);
+  const buffersRef = useRef<Map<string, AudioBuffer>>(new Map());
+  const lastHoverIndexRef = useRef<number>(-1);
+  const stepIndexRef = useRef<number>(0);
+  const sleepTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // -------------------------------------------------------------
+  // 1. Web Audio Engine Initialization & Auto-Sleep
+  // -------------------------------------------------------------
+  const resetSleepTimer = () => {
+    if (sleepTimerRef.current) clearTimeout(sleepTimerRef.current);
+    sleepTimerRef.current = setTimeout(() => {
+      if (audioCtxRef.current && audioCtxRef.current.state === "running") {
+        audioCtxRef.current.suspend().catch(() => {});
+      }
+    }, 30000); // Auto-sleep after 30s idle to conserve battery & CPU
+  };
+
+  const getAudioContext = () => {
+    if (!audioCtxRef.current && typeof window !== "undefined") {
+      const AudioCtx =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      if (!AudioCtx) return null;
+
+      const ctx = new AudioCtx({ latencyHint: "interactive" });
+      const gainNode = ctx.createGain();
+      gainNode.gain.setValueAtTime(0.35, ctx.currentTime);
+      gainNode.connect(ctx.destination);
+
+      audioCtxRef.current = ctx;
+      gainNodeRef.current = gainNode;
+    }
+
+    if (audioCtxRef.current?.state === "suspended") {
+      audioCtxRef.current.resume().catch(() => {});
+    }
+
+    resetSleepTimer();
+    return audioCtxRef.current;
+  };
+
+  // Pre-fetch & pre-decode all 14 sound files during idle time
   useEffect(() => {
-    // Initialize audio only on client side
-    audioRef.current = new Audio("/music/mast.mp3");
-    audioRef.current.loop = true;
-    audioRef.current.volume = 0.5;
+    const loadSounds = async () => {
+      const ctx = getAudioContext();
+      if (!ctx) return;
+
+      const allUrls = [
+        SOUND_FILES.click,
+        SOUND_FILES.menuOpen,
+        SOUND_FILES.transition,
+        SOUND_FILES.scramble,
+        ...SOUND_FILES.hover,
+        ...SOUND_FILES.step,
+      ];
+
+      for (const url of allUrls) {
+        if (buffersRef.current.has(url)) continue;
+        try {
+          const res = await fetch(url);
+          const arrayBuffer = await res.arrayBuffer();
+          const decoded = await ctx.decodeAudioData(arrayBuffer);
+          buffersRef.current.set(url, decoded);
+        } catch {
+          // silently skip if decode fails
+        }
+      }
+    };
+
+    if (typeof window !== "undefined") {
+      if ("requestIdleCallback" in window) {
+        (window as unknown as { requestIdleCallback: (cb: () => void) => void }).requestIdleCallback(() => {
+          loadSounds();
+        });
+      } else {
+        setTimeout(loadSounds, 1000);
+      }
+
+      const wakeUp = () => {
+        if (audioCtxRef.current?.state === "suspended") {
+          audioCtxRef.current.resume().catch(() => {});
+        }
+        resetSleepTimer();
+      };
+
+      window.addEventListener("pointerdown", wakeUp, { passive: true });
+      window.addEventListener("keydown", wakeUp, { passive: true });
+
+      return () => {
+        window.removeEventListener("pointerdown", wakeUp);
+        window.removeEventListener("keydown", wakeUp);
+        if (sleepTimerRef.current) clearTimeout(sleepTimerRef.current);
+      };
+    }
+  }, []);
+
+  // -------------------------------------------------------------
+  // 2. Play Audio Buffer with zero latency
+  // -------------------------------------------------------------
+  const playBuffer = (buffer: AudioBuffer | undefined, volume = 1) => {
+    if (!buffer || !soundEnabled) return;
+    const ctx = getAudioContext();
+    if (!ctx || !gainNodeRef.current) return;
+
+    try {
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+
+      if (volume !== 1) {
+        const itemGain = ctx.createGain();
+        itemGain.gain.setValueAtTime(volume, ctx.currentTime);
+        source.connect(itemGain);
+        itemGain.connect(gainNodeRef.current);
+      } else {
+        source.connect(gainNodeRef.current);
+      }
+
+      source.start(0);
+    } catch {
+      // Silently catch audio buffer failures
+    }
+  };
+
+  // Triggers
+  const playClick = () => {
+    playBuffer(buffersRef.current.get(SOUND_FILES.click), 0.9);
+  };
+
+  const playMenuOpen = () => {
+    playBuffer(buffersRef.current.get(SOUND_FILES.menuOpen), 0.85);
+  };
+
+  const playTransition = () => {
+    playBuffer(buffersRef.current.get(SOUND_FILES.transition), 0.85);
+  };
+
+  const playScramble = () => {
+    playBuffer(buffersRef.current.get(SOUND_FILES.scramble), 0.6);
+  };
+
+  // Anti-repeat shuffle for hover (disabled on mobile / touch devices)
+  const playHover = () => {
+    if (typeof window === "undefined") return;
+
+    // Disable hover sound on mobile screens or touch-primary devices
+    if (
+      window.innerWidth < 768 ||
+      window.matchMedia("(hover: none)").matches ||
+      window.matchMedia("(pointer: coarse)").matches
+    ) {
+      return;
+    }
+
+    const list = SOUND_FILES.hover;
+    let nextIdx = Math.floor(Math.random() * list.length);
+    if (nextIdx === lastHoverIndexRef.current) {
+      nextIdx = (nextIdx + 1) % list.length;
+    }
+    lastHoverIndexRef.current = nextIdx;
+    playBuffer(buffersRef.current.get(list[nextIdx]), 0.65);
+  };
+
+  // Ascending sequence ladder for step (carousel & pinned scrolls)
+  const playStep = () => {
+    const list = SOUND_FILES.step;
+    const curr = stepIndexRef.current;
+    stepIndexRef.current = (curr + 1) % list.length;
+    playBuffer(buffersRef.current.get(list[curr]), 0.85);
+  };
+
+  // Sound FX toggle with 15ms anti-click ramp
+  const toggleSound = () => {
+    setSoundEnabled((prev) => {
+      const next = !prev;
+      if (gainNodeRef.current && audioCtxRef.current) {
+        const time = audioCtxRef.current.currentTime;
+        gainNodeRef.current.gain.linearRampToValueAtTime(next ? 0.35 : 0.0001, time + 0.015);
+      }
+      return next;
+    });
+  };
+
+  // -------------------------------------------------------------
+  // 3. Background Music (mast.mp3)
+  // -------------------------------------------------------------
+  useEffect(() => {
+    musicRef.current = new Audio("/music/mast.mp3");
+    musicRef.current.loop = true;
+    musicRef.current.volume = 0.5;
 
     return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
+      if (musicRef.current) {
+        musicRef.current.pause();
+        musicRef.current = null;
       }
     };
   }, []);
 
   const playMusic = () => {
-    if (audioRef.current) {
-      audioRef.current.play().then(() => {
-        setIsPlaying(true);
-      }).catch(() => {
-        // Browsers block auto-play. Silently catch the error and set up a listener 
-        // to start music on the very first valid user interaction.
-        const playOnInteract = () => {
-          if (audioRef.current) {
-            audioRef.current.play().then(() => {
-              setIsPlaying(true);
-              // Clean up listeners ONLY on success
-              document.removeEventListener("click", playOnInteract);
-              document.removeEventListener("pointerdown", playOnInteract);
-              document.removeEventListener("touchstart", playOnInteract);
-              document.removeEventListener("keydown", playOnInteract);
-            }).catch(() => {
-              // Silently ignore failure, wait for the next interaction
-            });
-          }
-        };
-        
-        document.addEventListener("click", playOnInteract);
-        document.addEventListener("pointerdown", playOnInteract);
-        document.addEventListener("touchstart", playOnInteract);
-        document.addEventListener("keydown", playOnInteract);
-      });
+    if (musicRef.current) {
+      musicRef.current
+        .play()
+        .then(() => setIsPlaying(true))
+        .catch(() => {
+          const playOnInteract = () => {
+            if (musicRef.current) {
+              musicRef.current
+                .play()
+                .then(() => {
+                  setIsPlaying(true);
+                  document.removeEventListener("click", playOnInteract);
+                  document.removeEventListener("pointerdown", playOnInteract);
+                })
+                .catch(() => {});
+            }
+          };
+          document.addEventListener("click", playOnInteract, { once: true });
+          document.addEventListener("pointerdown", playOnInteract, { once: true });
+        });
     }
   };
 
   const pauseMusic = () => {
-    if (audioRef.current) {
-      audioRef.current.pause();
+    if (musicRef.current) {
+      musicRef.current.pause();
       setIsPlaying(false);
     }
   };
@@ -72,7 +288,22 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AudioContext.Provider value={{ isPlaying, togglePlay, playMusic, pauseMusic }}>
+    <AudioContext.Provider
+      value={{
+        isPlaying,
+        togglePlay,
+        playMusic,
+        pauseMusic,
+        soundEnabled,
+        toggleSound,
+        playHover,
+        playClick,
+        playStep,
+        playMenuOpen,
+        playTransition,
+        playScramble,
+      }}
+    >
       {children}
     </AudioContext.Provider>
   );

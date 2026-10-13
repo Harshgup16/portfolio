@@ -4,6 +4,7 @@ import React, { useRef } from 'react';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
 import ScrollTrigger from 'gsap/ScrollTrigger';
+import { useAudio } from './AudioProvider';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -52,6 +53,7 @@ const servicesData = [
 
 export default function PinnedGames() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const { playHover, playStep } = useAudio();
 
   useGSAP(() => {
     const pinCards = gsap.utils.toArray(".pin-card") as HTMLElement[];
@@ -64,7 +66,9 @@ export default function PinnedGames() {
           endTrigger: pinCards[pinCards.length - 1],
           end: "top top",
           pin: true,
-          pinSpacing: false
+          pinSpacing: false,
+          onEnter: () => playStep(),
+          onEnterBack: () => playStep(),
         });
 
         ScrollTrigger.create({
@@ -104,7 +108,11 @@ export default function PinnedGames() {
             </p>
             <div className="w-full flex flex-col border-t border-black/20">
               {service.items.map((item, idx) => (
-                <div key={idx} className="flex flex-row items-start py-6 md:py-8 border-b border-black/20 w-full group hover:bg-black/5 transition-colors cursor-default">
+                <div
+                  key={idx}
+                  onMouseEnter={playHover}
+                  className="flex flex-row items-start py-6 md:py-8 border-b border-black/20 w-full group hover:bg-black/5 transition-colors cursor-default"
+                >
                   <span className="text-[#a02128] font-mono text-sm md:text-base mr-6 md:mr-12 mt-1 font-bold">{item.num}</span>
                   <div className="flex flex-col">
                     <h3 className="text-xl md:text-2xl lg:text-3xl font-bold tracking-tight text-[#111]">{item.name}</h3>

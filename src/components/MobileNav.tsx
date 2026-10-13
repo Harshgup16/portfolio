@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { gsap } from "gsap";
 import Logo from "./Logo";
+import { useAudio } from "./AudioProvider";
 
 // ─── Character Pool ────────────────────────────────────────────────────────────
 const CHAR_POOL = ["H", "A", "R", "S", "H", "h", "a", "r", "s", "h"];
@@ -99,6 +100,7 @@ function buildParticles(
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function MobileNav() {
+  const { playHover, playClick, playMenuOpen } = useAudio();
   const [isOpen, setIsOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
@@ -323,13 +325,17 @@ export default function MobileNav() {
     <>
       {/* Logo */}
       <div className="fixed top-6 left-6 md:top-8 md:left-8 z-[45] mix-blend-difference text-white pointer-events-auto">
-        <Link href="/"><Logo filled className="w-16 h-16 md:w-32 md:h-32" /></Link>
+        <Link href="/" onMouseEnter={playHover} onClick={playClick}><Logo filled className="w-16 h-16 md:w-32 md:h-32" /></Link>
       </div>
 
       {/* Header bar */}
       <header className={`fixed top-0 left-0 w-full z-40 pointer-events-none mix-blend-difference transition-transform duration-[600ms] ease-[cubic-bezier(0.76,0,0.24,1)] ${isVisible ? "translate-y-0" : "-translate-y-[250px]"}`}>
         <button
-          onClick={() => setIsOpen(true)}
+          onClick={() => {
+            playMenuOpen();
+            setIsOpen(true);
+          }}
+          onMouseEnter={playHover}
           className="md:hidden absolute top-6 right-6 h-12 flex items-center text-white text-sm font-semibold tracking-widest uppercase hover:text-gray-300 transition-colors pointer-events-auto"
         >
           Menu
@@ -352,8 +358,8 @@ export default function MobileNav() {
                 </div>
               </div>
             );
-            if (isMailto) return <a key={link.name} href={link.href} className="group hover-underline inline-block pb-0.5">{LinkContent}</a>;
-            return <Link key={link.name} href={link.href} className="group hover-underline inline-block pb-0.5">{LinkContent}</Link>;
+            if (isMailto) return <a key={link.name} href={link.href} onMouseEnter={playHover} onClick={playClick} className="group hover-underline inline-block pb-0.5">{LinkContent}</a>;
+            return <Link key={link.name} href={link.href} onMouseEnter={playHover} onClick={playClick} className="group hover-underline inline-block pb-0.5">{LinkContent}</Link>;
           })}
         </div>
 
@@ -381,7 +387,14 @@ export default function MobileNav() {
         <div className="relative flex flex-col h-full" style={{ zIndex: 1 }}>
           <div ref={headerRef} className="flex justify-between items-center p-6 md:p-8 text-sm font-medium">
             <span className="text-xl md:text-2xl font-bold tracking-wide">Harsh Gupta</span>
-            <button onClick={() => setIsOpen(false)} className="text-xs hover:text-gray-300 transition-colors uppercase tracking-widest">
+            <button
+              onClick={() => {
+                playClick();
+                setIsOpen(false);
+              }}
+              onMouseEnter={playHover}
+              className="text-xs hover:text-gray-300 transition-colors uppercase tracking-widest"
+            >
               Close
             </button>
           </div>
@@ -401,7 +414,11 @@ export default function MobileNav() {
                     <a
                       ref={(el) => { linksRef.current[i] = el; }}
                       href={href}
-                      onClick={() => setIsOpen(false)}
+                      onMouseEnter={playHover}
+                      onClick={() => {
+                        playClick();
+                        setIsOpen(false);
+                      }}
                       className="block text-5xl font-medium tracking-tight hover:text-gray-300 transition-colors transform-gpu origin-left"
                     >
                       {label}
@@ -410,7 +427,11 @@ export default function MobileNav() {
                     <Link
                       ref={(el) => { linksRef.current[i] = el; }}
                       href={href}
-                      onClick={() => setIsOpen(false)}
+                      onMouseEnter={playHover}
+                      onClick={() => {
+                        playClick();
+                        setIsOpen(false);
+                      }}
                       className="block text-5xl font-medium tracking-tight hover:text-gray-300 transition-colors transform-gpu origin-left"
                     >
                       {label}
@@ -424,9 +445,9 @@ export default function MobileNav() {
           <div ref={footerRef} className="p-8 pb-12 flex flex-col gap-4">
             <span className="text-gray-500 text-sm">Socials</span>
             <div className="flex gap-6 text-sm font-medium">
-              <a href="https://www.linkedin.com/in/harshgup16/" target="_blank" rel="noopener noreferrer" className="hover:text-gray-300 transition-colors">LinkedIn</a>
-              <a href="https://github.com/Harshgup16" target="_blank" rel="noopener noreferrer" className="hover:text-gray-300 transition-colors">Github</a>
-              <a href="#" target="_blank" rel="noopener noreferrer" className="hover:text-gray-300 transition-colors">Codeforces</a>
+              <a href="https://www.linkedin.com/in/harshgup16/" target="_blank" rel="noopener noreferrer" onMouseEnter={playHover} onClick={playClick} className="hover:text-gray-300 transition-colors">LinkedIn</a>
+              <a href="https://github.com/Harshgup16" target="_blank" rel="noopener noreferrer" onMouseEnter={playHover} onClick={playClick} className="hover:text-gray-300 transition-colors">Github</a>
+              <a href="https://codeforces.com/" target="_blank" rel="noopener noreferrer" onMouseEnter={playHover} onClick={playClick} className="hover:text-gray-300 transition-colors">Codeforces</a>
             </div>
           </div>
         </div>

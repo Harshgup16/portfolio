@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useAudio } from "./AudioProvider";
 
 /* ------------------------------------------------------------------ */
 /*  Grid cell types                                                     */
@@ -87,6 +88,8 @@ function ImageTile({ cell }: { cell: ImageCell }) {
 /*  Component                                                           */
 /* ------------------------------------------------------------------ */
 export default function BentoGrid() {
+  const { playHover } = useAudio();
+
   return (
     <section className="w-full bg-[#e5e5e5]">
       <div
@@ -98,6 +101,7 @@ export default function BentoGrid() {
         {cells.map((cell, i) => (
           <div
             key={i}
+            onMouseEnter={playHover}
             className="relative border border-black/10 aspect-square sm:aspect-auto overflow-hidden transition-all duration-300 hover:bg-black/[0.03]"
           >
             {cell.type === "logo" && <LogoTile cell={cell} />}
