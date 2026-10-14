@@ -140,10 +140,12 @@ export function AudioProvider({ children }: { children: ReactNode }) {
 
       window.addEventListener("pointerdown", wakeUp, { passive: true });
       window.addEventListener("keydown", wakeUp, { passive: true });
+      window.addEventListener("pointermove", wakeUp, { once: true, passive: true });
 
       return () => {
         window.removeEventListener("pointerdown", wakeUp);
         window.removeEventListener("keydown", wakeUp);
+        window.removeEventListener("pointermove", wakeUp);
         if (sleepTimerRef.current) clearTimeout(sleepTimerRef.current);
       };
     }
@@ -193,16 +195,12 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     playBuffer(buffersRef.current.get(SOUND_FILES.scramble), 0.6);
   };
 
-  // Anti-repeat shuffle for hover (disabled on mobile / touch devices)
+  // Anti-repeat shuffle for hover (disabled on mobile phones < 768px)
   const playHover = () => {
     if (typeof window === "undefined") return;
 
-    // Disable hover sound on mobile screens or touch-primary devices
-    if (
-      window.innerWidth < 768 ||
-      window.matchMedia("(hover: none)").matches ||
-      window.matchMedia("(pointer: coarse)").matches
-    ) {
+    // Only disable hover sounds on mobile phone screens (< 768px)
+    if (window.innerWidth < 768) {
       return;
     }
 
@@ -212,7 +210,22 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       nextIdx = (nextIdx + 1) % list.length;
     }
     lastHoverIndexRef.current = nextIdx;
-    playBuffer(buffersRef.current.get(list[nextIdx]), 0.65);
+
+    const file = list[nextIdx];
+    const buffer = buffersRef.current.get(file);
+
+    if (buffer && audioCtxRef.current && audioCtxRef.current.state === "running") {
+      playBuffer(buffer, 0.65);
+    } else {
+      // Fallback: direct HTML5 Audio playback (works even if AudioContext is warming up)
+      try {
+        const audio = new Audio(file);
+        audio.volume = 0.4;
+        audio.play().catch(() => {});
+      } catch {
+        // Silently catch
+      }
+    }
   };
 
   // Ascending sequence ladder for step (carousel & pinned scrolls)
@@ -238,10 +251,55 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   // -------------------------------------------------------------
   // 3. Background Music (mast.mp3)
   // -------------------------------------------------------------
+  const playMusic = () => {
+    if (musicRef.current) {
+      musicRef.current
+        .play()
+        .then(() => {
+          setIsPlaying(true);
+          if (audioCtxRef.current?.state === "suspended") {
+            audioCtxRef.current.resume().catch(() => {});
+          }
+        })
+        .catch(() => {
+          // Browsers block auto-play. Silently catch the error and set up a listener 
+          // to start music on the very first valid user interaction.
+          const playOnInteract = () => {
+            if (musicRef.current) {
+              musicRef.current
+                .play()
+                .then(() => {
+                  setIsPlaying(true);
+                  if (audioCtxRef.current?.state === "suspended") {
+                    audioCtxRef.current.resume().catch(() => {});
+                  }
+                  // Clean up listeners ONLY on success
+                  document.removeEventListener("click", playOnInteract);
+                  document.removeEventListener("pointerdown", playOnInteract);
+                  document.removeEventListener("touchstart", playOnInteract);
+                  document.removeEventListener("keydown", playOnInteract);
+                })
+                .catch(() => {
+                  // Silently ignore failure, wait for next interaction
+                });
+            }
+          };
+
+          document.addEventListener("click", playOnInteract);
+          document.addEventListener("pointerdown", playOnInteract);
+          document.addEventListener("touchstart", playOnInteract);
+          document.addEventListener("keydown", playOnInteract);
+        });
+    }
+  };
+
   useEffect(() => {
     musicRef.current = new Audio("/music/mast.mp3");
     musicRef.current.loop = true;
     musicRef.current.volume = 0.5;
+
+    // Immediately attempt to autoplay on load (laptop reload)
+    playMusic();
 
     return () => {
       if (musicRef.current) {
@@ -250,30 +308,6 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       }
     };
   }, []);
-
-  const playMusic = () => {
-    if (musicRef.current) {
-      musicRef.current
-        .play()
-        .then(() => setIsPlaying(true))
-        .catch(() => {
-          const playOnInteract = () => {
-            if (musicRef.current) {
-              musicRef.current
-                .play()
-                .then(() => {
-                  setIsPlaying(true);
-                  document.removeEventListener("click", playOnInteract);
-                  document.removeEventListener("pointerdown", playOnInteract);
-                })
-                .catch(() => {});
-            }
-          };
-          document.addEventListener("click", playOnInteract, { once: true });
-          document.addEventListener("pointerdown", playOnInteract, { once: true });
-        });
-    }
-  };
 
   const pauseMusic = () => {
     if (musicRef.current) {

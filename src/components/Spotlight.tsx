@@ -11,11 +11,13 @@ gsap.registerPlugin(ScrollTrigger);
 
 function LazyVideo({
   src,
+  mockup,
   className,
   isActive,
   name
 }: {
   src: string;
+  mockup?: string;
   className?: string;
   isActive?: boolean;
   name: string;
@@ -27,6 +29,7 @@ function LazyVideo({
   const [hasError, setHasError] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const safeSrc = encodeURI(src);
+  const safeMockup = mockup ? encodeURI(mockup) : undefined;
 
   // Active state: externally controlled by desktop ScrollTrigger, or inView on mobile, or hovered
   const shouldPlay = (isActive !== undefined ? isActive : inView) || isHovered;
@@ -89,28 +92,50 @@ function LazyVideo({
       onMouseLeave={() => setIsHovered(false)}
       className="relative w-full h-full bg-[#181818] overflow-hidden rounded-lg group select-none"
     >
-      {/* Sleek Fallback Card / Buffering state */}
-      <div
-        className={`absolute inset-0 flex flex-col items-center justify-center p-4 bg-gradient-to-br from-[#222222] to-[#121212] transition-opacity duration-500 pointer-events-none z-0 ${
-          isPlaying && !hasError ? "opacity-0" : "opacity-100"
-        }`}
-      >
-        <div className="w-12 h-12 rounded-full border border-white/20 flex items-center justify-center text-white/60 mb-2 group-hover:scale-110 transition-transform">
-          <span className="text-sm font-sans pl-0.5">▶</span>
+      {/* Blurry Mockup Preview (Eliminates black screen when inactive/loading) */}
+      {safeMockup ? (
+        <div className="absolute inset-0 overflow-hidden z-0">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={safeMockup}
+            alt={name}
+            className={`w-full h-full object-cover transform scale-105 filter blur-sm transition-all duration-700 ${
+              isPlaying && !hasError
+                ? "opacity-0 scale-100"
+                : "opacity-85 scale-105"
+            }`}
+          />
+          <div
+            className={`absolute inset-0 bg-black/20 transition-opacity duration-700 ${
+              isPlaying && !hasError ? "opacity-0" : "opacity-100"
+            }`}
+          />
         </div>
-        <span className="text-xs uppercase tracking-widest text-white/50 font-mono text-center px-2">
-          {name}
-        </span>
-      </div>
+      ) : (
+        /* Sleek Fallback Card if no mockup provided */
+        <div
+          className={`absolute inset-0 flex flex-col items-center justify-center p-4 bg-gradient-to-br from-[#222222] to-[#121212] transition-opacity duration-500 pointer-events-none z-0 ${
+            isPlaying && !hasError ? "opacity-0" : "opacity-100"
+          }`}
+        >
+          <div className="w-12 h-12 rounded-full border border-white/20 flex items-center justify-center text-white/60 mb-2 group-hover:scale-110 transition-transform">
+            <span className="text-sm font-sans pl-0.5">▶</span>
+          </div>
+          <span className="text-xs uppercase tracking-widest text-white/50 font-mono text-center px-2">
+            {name}
+          </span>
+        </div>
+      )}
 
       <video
         ref={videoRef}
+        poster={safeMockup}
         loop
         muted
         playsInline
         preload="metadata"
         onError={() => setHasError(true)}
-        className={`relative z-10 ${className} transition-opacity duration-500 ${
+        className={`relative z-10 ${className} transition-opacity duration-700 ${
           isPlaying && !hasError ? "opacity-100" : "opacity-0"
         }`}
       />
@@ -120,6 +145,7 @@ function LazyVideo({
 
 const projects: {
   img?: string;
+  mockup?: string;
   video?: string;
   containVideo?: boolean;
   name: string;
@@ -129,6 +155,7 @@ const projects: {
 }[] = [
   {
     video: "/projects/MultiPDF-RAG.mp4",
+    mockup: "/mockup/MultiPDF mockup.png",
     containVideo: true,
     name: "PDF RAG Chatbot",
     category: "AI / GenAI",
@@ -137,6 +164,7 @@ const projects: {
   },
   {
     video: "/projects/Number Plate Detection.mp4",
+    mockup: "/mockup/Number plate detection.png",
     name: "Number Plate Detection",
     category: "ML / Vision",
     subtitle: "Computer Vision Pipeline",
@@ -144,6 +172,7 @@ const projects: {
   },
   {
     video: "/projects/Kitty Konnect.mp4",
+    mockup: "/mockup/Kitty-Konnect.png",
     name: "Kitty Konnect",
     category: "Web Development",
     subtitle: "Real-time Chat App",
@@ -151,6 +180,7 @@ const projects: {
   },
   {
     video: "/projects/3D-Piano.mp4",
+    mockup: "/mockup/3D Piano.png",
     name: "3D Piano",
     category: "Front-end",
     subtitle: "React + Three.js",
@@ -320,6 +350,7 @@ export default function Spotlight() {
               {p.video ? (
                 <LazyVideo
                   src={p.video}
+                  mockup={p.mockup}
                   name={p.name}
                   isActive={activeIdx === i}
                   className={`w-full h-full ${
@@ -376,6 +407,7 @@ export default function Spotlight() {
                 {p.video ? (
                   <LazyVideo
                     src={p.video}
+                    mockup={p.mockup}
                     name={p.name}
                     className={`w-full h-full ${
                       p.containVideo ? "object-contain bg-black/40 rounded-lg" : "object-cover"
