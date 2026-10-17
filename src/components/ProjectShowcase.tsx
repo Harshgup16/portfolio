@@ -12,6 +12,15 @@ if (typeof window !== "undefined") {
 
 const projects = [
   {
+    name: "Multi-Agent Research Assistant",
+    category: "AI / GenAI",
+    subtitle: "Multi-Agent AI Research System",
+    description: "An intelligent multi-agent AI research system that autonomously researches, plans, and generates structured, fact-based answers in real time. Powered by LangGraph, Groq Llama 3.3 70B, and Tavily Search, it uses specialized AI agents for routing, web research, task orchestration, parallel execution, and result synthesis to deliver well-organized answers with sources.",
+    tech: ["LangGraph", "Groq", "Streamlit", "Python", "Tavily"],
+    link: "https://multi-agent-research-assistant-harsh.streamlit.app/",
+    github: "https://github.com/Harshgup16/Multi-agent-research-assistant",
+  },
+  {
     name: "MULTI-PDF RAG Chatbot",
     category: "AI / GenAI",
     subtitle: "Multi-Agent RAG System",
@@ -42,14 +51,6 @@ const projects = [
     description: "A modern real-time messaging platform featuring secure authentication, instant messaging, and community channels. Built with a playful UI and smooth user experience to make online conversations more engaging.",
     tech: ["Next.js", "Socket.io", "Tailwind CSS", "Node.js"],
     link: "https://kitty-konnect.vercel.app/",
-  },
-  {
-    name: "Agentic Blog Writer",
-    category: "AI / GenAI",
-    subtitle: "Multi-Agent Blog Generator",
-    description: "An intelligent multi-agent AI writing system that autonomously researches, plans, and generates high-quality technical blogs in real time. Powered by LangGraph, Groq Llama 3.3 70B, and Tavily Search, the platform uses specialized AI agents for routing, research, orchestration, and parallel content generation to create structured, fact-based, and highly readable articles.",
-    tech: ["LangGraph", "Groq", "Streamlit", "Python", "Tavily"],
-    link: "https://blog-llm-harshgup16.streamlit.app/",
   },
   {
     name: "SoulSync",
@@ -188,7 +189,7 @@ export default function ProjectShowcase() {
                   ))}
                 </div>
               </div>
-              <div className="w-[10%] text-right text-lg font-medium">
+              <div className="w-[10%] text-right text-base font-medium flex flex-col items-end gap-1">
                 <a
                   href={p.link}
                   target="_blank"
@@ -196,8 +197,19 @@ export default function ProjectShowcase() {
                   onClick={playClick}
                   className="text-[#141414]/50 hover:text-[#a02128] transition-colors duration-300 underline underline-offset-4"
                 >
-                  Link ↗
+                  Live ↗
                 </a>
+                {p.github && (
+                  <a
+                    href={p.github}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={playClick}
+                    className="text-xs text-[#141414]/40 hover:text-[#a02128] transition-colors duration-300 underline underline-offset-2"
+                  >
+                    Code ↗
+                  </a>
+                )}
               </div>
             </div>
           ))}
@@ -221,15 +233,28 @@ export default function ProjectShowcase() {
                     /{TOTAL_PAD}
                   </span>
                 </h2>
-                <a
-                  href={p.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={playClick}
-                  className="text-sm font-semibold text-[#141414]/60 hover:text-[#a02128] mt-3 underline underline-offset-4 transition-colors"
-                >
-                  Link ↗
-                </a>
+                <div className="flex items-center gap-3 mt-3">
+                  <a
+                    href={p.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={playClick}
+                    className="text-sm font-semibold text-[#141414]/60 hover:text-[#a02128] underline underline-offset-4 transition-colors"
+                  >
+                    Live ↗
+                  </a>
+                  {p.github && (
+                    <a
+                      href={p.github}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={playClick}
+                      className="text-xs font-semibold text-[#141414]/40 hover:text-[#a02128] underline underline-offset-4 transition-colors"
+                    >
+                      Code ↗
+                    </a>
+                  )}
+                </div>
               </div>
 
               {/* Title row */}

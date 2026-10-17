@@ -200,3 +200,23 @@ Avoid fake ingredients, unappetizing texture, messy spills, unrealistic steam, m
 For tech products, add:
 
 Avoid warped ports, incorrect buttons, fake screen text, distorted reflections, unrealistic scale, and fingerprints unless requested.
+
+==================================================
+31. Multi-Agent Research Assistant - Workspace Mockup
+==================================================
+
+Prompt:
+Create a photorealistic, premium editorial product mockup of a modern Space Gray MacBook Pro open on a sleek dark slate designer desk, displaying a state-of-the-art AI software interface: "Multi-Agent Research Assistant". The laptop screen shows a futuristic, clean dark-mode dashboard featuring an interactive agent workflow graph with glowing nodes (Router, Research Agent, Orchestrator, Synthesizer), a live streamed research log with citations, and a clean markdown report preview.
+
+The desk setup is minimal and elevated: a subtle mechanical keyboard, a matte ceramic coffee mug, and soft ambient accent lighting casting gentle cyan and warm amber rim glow across the laptop's metallic edges. Shallow depth of field, 3/4 front angle perspective, crisp screen detail, natural soft contact shadows on the table surface. Clean, professional tech portfolio aesthetic. 8k, ultra-realistic commercial product photography.
+
+Negative prompt / Avoid:
+Avoid distorted laptop proportions, warped keyboard, unreadable messy text, fake cartoon logos, excessive rainbow RGB glare, messy clutter, floating objects, plastic look, blurry screen, low resolution, or oversaturated colors.
+
+==================================================
+32. Multi-Agent Research Assistant - Screenshot Blend (For ChatGPT / Midjourney / QuestStudio with image upload)
+==================================================
+
+Prompt:
+[Upload screenshot of your Streamlit app / landing page]
+Create a realistic commercial mockup of a sleek 16-inch modern laptop centered on a dark matte studio surface. Display the attached software screenshot seamlessly fitted onto the laptop display, with realistic glass screen reflections and natural screen luminescence. Soft, cinematic studio lighting with subtle rim light highlighting the laptop edges. A 30-degree perspective angle, clean background with soft out-of-focus tech studio accents, sharp focus on the display and UI details. Clean, premium, minimalist aesthetic suitable for a high-end software developer portfolio.

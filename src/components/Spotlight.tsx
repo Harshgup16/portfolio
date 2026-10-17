@@ -27,6 +27,7 @@ function LazyVideo({
   const [inView, setInView] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [imgError, setImgError] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const safeSrc = encodeURI(src);
   const safeMockup = mockup ? encodeURI(mockup) : undefined;
@@ -93,12 +94,13 @@ function LazyVideo({
       className="relative w-full h-full bg-[#181818] overflow-hidden rounded-lg group select-none"
     >
       {/* Blurry Mockup Preview (Eliminates black screen when inactive/loading) */}
-      {safeMockup ? (
+      {safeMockup && !imgError ? (
         <div className="absolute inset-0 overflow-hidden z-0">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={safeMockup}
             alt={name}
+            onError={() => setImgError(true)}
             className={`w-full h-full object-cover transform scale-105 filter blur-sm transition-all duration-700 ${
               isPlaying && !hasError
                 ? "opacity-0 scale-100"
@@ -129,7 +131,7 @@ function LazyVideo({
 
       <video
         ref={videoRef}
-        poster={safeMockup}
+        poster={!imgError ? safeMockup : undefined}
         loop
         muted
         playsInline
@@ -153,6 +155,15 @@ const projects: {
   subtitle: string;
   link?: string;
 }[] = [
+  {
+    video: "/projects/MultiAgent research assistant.mp4",
+    mockup: "mockup/MultiAgent  research assistant.png",
+    containVideo: true,
+    name: "Multi-Agent Research Assistant",
+    category: "AI / GenAI",
+    subtitle: "Multi-Agent AI Research System",
+    link: "https://multi-agent-research-assistant-harsh.streamlit.app/",
+  },
   {
     video: "/projects/MultiPDF-RAG.mp4",
     mockup: "/mockup/MultiPDF mockup.png",
@@ -268,7 +279,7 @@ export default function Spotlight() {
       ScrollTrigger.create({
         trigger: desktop,
         start: "top top",
-        end: `+=${window.innerHeight * 5}px`,
+        end: `+=${window.innerHeight * (TOTAL + 1)}px`,
         pin: true,
         pinSpacing: true,
         scrub: 1,
